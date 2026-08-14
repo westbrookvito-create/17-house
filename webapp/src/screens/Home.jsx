@@ -20,7 +20,7 @@ export default function Home() {
           <h2 className="serif" style={{ fontSize: 23 }}>
             Добро пожаловать в 17 House
           </h2>
-          <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
+          <p className="muted" style={{ fontSize: 21, lineHeight: 1.8, whiteSpace: 'nowrap' }}>
             Закрытый клуб по интересам
             <br />
             Привилегии в ресторанах. Мерч
