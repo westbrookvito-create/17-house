@@ -3,7 +3,7 @@ const config = require('../../config');
 const { openAppKeyboard } = require('../keyboards');
 
 function register(bot) {
-  bot.start((ctx) => {
+  bot.start(async (ctx) => {
     const user = users.getOrCreate(ctx.from);
 
     const text =
@@ -11,6 +11,20 @@ function register(bot) {
       `Закрытый клуб по интересам. Привилегии в ресторанах. Мерч. Жизнь в стиле.\n\n` +
       `Ваша карта участника: <b>#${user.member_code}</b>\n\n` +
       `Нажмите кнопку ниже, чтобы открыть приложение клуба.`;
+
+    // Фото берётся прямо с задеплоенного мини-аппа (webapp/public/hero.jpg),
+    // а не хранится отдельной копией в боте — так они не могут разъехаться.
+    if (config.webappUrl) {
+      try {
+        return await ctx.replyWithPhoto(`${config.webappUrl}/hero.jpg`, {
+          caption: text,
+          parse_mode: 'HTML',
+          ...openAppKeyboard(),
+        });
+      } catch (err) {
+        console.error('[start] failed to send hero photo, falling back to text-only', err.message);
+      }
+    }
 
     return ctx.replyWithHTML(text, openAppKeyboard());
   });
