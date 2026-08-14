@@ -90,7 +90,7 @@ export default function Profile() {
           <button className="list-item" style={{ width: '100%' }} onClick={() => toast('Настройки скоро появятся')}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <img
-                src="/icons/settings.png"
+                src="/icons/list-item.png"
                 alt=""
                 className="list-item-icon"
                 onError={(e) => {
@@ -105,7 +105,7 @@ export default function Profile() {
           <button className="list-item" style={{ width: '100%' }} onClick={handleContactManager}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <img
-                src="/icons/manager.png"
+                src="/icons/list-item.png"
                 alt=""
                 className="list-item-icon"
                 onError={(e) => {
