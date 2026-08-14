@@ -231,6 +231,13 @@ a {
   min-height: 230px;
 }
 
+.hero-full {
+  margin: 0 -18px;
+  border-radius: 0;
+  border: none;
+  min-height: 280px;
+}
+
 .hero::after {
   content: '';
   position: absolute;
@@ -239,51 +246,16 @@ a {
   pointer-events: none;
 }
 
-.bottle-mark {
-  width: 46px;
-  height: 46px;
-  display: block;
-  margin: 0 auto;
+.home-screen {
+  min-height: calc(100vh - 74px - var(--safe-bottom));
 }
 
-.nav-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 40;
-}
-
-.nav-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(280px, 78vw);
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  z-index: 41;
-  padding: calc(20px + var(--safe-top)) 20px 20px;
+.card-fill {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.nav-drawer-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 10px;
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  background: none;
-  border: none;
-  text-align: left;
-  font-size: 15px;
-  width: 100%;
-}
-
-.nav-drawer-item.active {
-  background: var(--surface-2);
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .color-plate {
