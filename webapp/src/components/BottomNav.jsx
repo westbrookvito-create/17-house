@@ -1,24 +1,30 @@
 import { NavLink } from 'react-router-dom';
+import IconHome from './icons/Home';
+import IconBag from './icons/Bag';
+import IconGift from './icons/Gift';
+import IconUser from './icons/User';
 
 const TABS = [
-  { path: '/', label: 'Добро пожаловать', icon: '🏛' },
-  { path: '/shirts', label: 'Каталог', icon: '🛍' },
-  { path: '/bonus', label: 'Бонусы', icon: '🎁' },
-  { path: '/profile', label: 'Профиль', icon: '👤' },
+  { path: '/', label: 'Добро пожаловать', Icon: IconHome },
+  { path: '/shirts', label: 'Каталог', Icon: IconBag },
+  { path: '/bonus', label: 'Бонусы', Icon: IconGift },
+  { path: '/profile', label: 'Профиль', Icon: IconUser },
 ];
 
 export default function BottomNav() {
   return (
     <nav className="bottom-nav">
-      {TABS.map((tab) => (
+      {TABS.map(({ path, label, Icon }) => (
         <NavLink
-          key={tab.path}
-          to={tab.path}
-          end={tab.path === '/'}
+          key={path}
+          to={path}
+          end={path === '/'}
           className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
         >
-          <span className="bottom-nav-icon">{tab.icon}</span>
-          <span className="bottom-nav-label">{tab.label}</span>
+          <span className="bottom-nav-icon">
+            <Icon size={22} />
+          </span>
+          <span className="bottom-nav-label">{label}</span>
         </NavLink>
       ))}
     </nav>

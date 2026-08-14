@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Logo from '../components/Logo';
 import IconGear from '../components/icons/Gear';
+import IconMessage from '../components/icons/Message';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { getTelegramUser } from '../telegram';
@@ -98,14 +99,7 @@ export default function Profile() {
 
           <button className="list-item" style={{ width: '100%' }} onClick={handleContactManager}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img
-                src="/icons/list-item.png"
-                alt=""
-                className="list-item-icon"
-                onError={(e) => {
-                  e.currentTarget.style.visibility = 'hidden';
-                }}
-              />
+              <IconMessage size={22} color="var(--text)" />
               Связаться с менеджером
             </span>
             <span className="muted">›</span>
