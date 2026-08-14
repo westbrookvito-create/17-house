@@ -1,11 +1,11 @@
 :root {
-  --bg: #0b0e15;
-  --surface: #241f19;
-  --surface-2: #322b21;
+  --bg: #000000;
+  --surface: #0e0d0b;
+  --surface-2: #1a1815;
   --text: #f4f1ea;
   --text-muted: #9a958c;
-  --accent-navy: #3a3126;
-  --accent-navy-2: #1a150f;
+  --accent-navy: #262319;
+  --accent-navy-2: #100f0c;
   --beige: #f1e6d3;
   --beige-text: #1a1712;
   --danger: #d96c6c;
@@ -334,7 +334,7 @@ a {
 }
 
 .member-card-light {
-  background: linear-gradient(155deg, #4a3d2c 0%, var(--accent-navy) 100%);
+  background: linear-gradient(155deg, #332c1f 0%, var(--accent-navy) 100%);
 }
 
 .member-card-code {
