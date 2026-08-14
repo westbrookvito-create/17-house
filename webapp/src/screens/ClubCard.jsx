@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import Logo from '../components/Logo';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { copyToClipboard, hapticSuccess } from '../telegram';
@@ -35,20 +34,16 @@ export default function ClubCard() {
 
       {card && (
         <>
-          <div className="member-card">
-            <Logo height={34} />
-            <div className="serif" style={{ fontSize: 16, marginTop: 10 }}>
-              {card.clubName}
-            </div>
-            <div className="member-card-code" style={{ marginTop: 2 }}>
-              MEMBER CARD
-            </div>
-            <div className="serif" style={{ fontSize: 30, marginTop: 8 }}>
-              #{card.memberCode}
-            </div>
-          </div>
+          <div className="member-card-photo" style={{ backgroundImage: 'url(/card.jpg)' }} />
 
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="row-between">
+              <span className="muted">Карта участника</span>
+              <span className="serif" style={{ fontSize: 20, color: 'var(--text)' }}>
+                #{card.memberCode}
+              </span>
+            </div>
+
             <h3 className="serif" style={{ fontSize: 17 }}>
               Это ваша личная визитка 17 House.
             </h3>
