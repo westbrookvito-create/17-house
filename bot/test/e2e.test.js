@@ -168,7 +168,8 @@ async function main() {
   await sendText(ADMIN_ID, 'Плотный хлопок, вышитая эмблема.');
   await sendText(ADMIN_ID, '3200');
   await sendText(ADMIN_ID, 'S, M, L, XL');
-  await sendPhoto(ADMIN_ID, 'fileNavy');
+  await sendPhoto(ADMIN_ID, 'fileNavy1');
+  await sendPhoto(ADMIN_ID, 'fileNavy2');
   await sendText(ADMIN_ID, 'Navy');
   await sendPhoto(ADMIN_ID, 'fileBeige');
   await sendText(ADMIN_ID, 'Beige');
@@ -185,7 +186,8 @@ async function main() {
   assert.deepStrictEqual(product.sizes, ['S', 'M', 'L', 'XL']);
   assert.strictEqual(product.colors.length, 2);
   assert.strictEqual(product.colors[0].name, 'Navy');
-  assert.strictEqual(product.colors[0].fileId, 'fileNavy_large');
+  assert.deepStrictEqual(product.colors[0].fileIds, ['fileNavy1_large', 'fileNavy2_large']);
+  assert.strictEqual(product.colors[1].fileIds.length, 1, 'Beige has a single photo');
   console.log(
     '  OK product created:',
     product.id,
@@ -465,6 +467,17 @@ async function main() {
   const catalogShown = await api('/api/products', { headers: authHeaders(USER_ID) });
   assert.strictEqual(catalogShown.body.products.length, 1);
   console.log('  OK hide/show reflected in public catalog');
+
+  console.log('== catalog exposes multiple photo URLs per color ==');
+  const navyColor = catalogShown.body.products[0].colors.find((c) => c.name === 'Navy');
+  assert.deepStrictEqual(navyColor.imageUrls, [
+    '/api/products/image/fileNavy1_large',
+    '/api/products/image/fileNavy2_large',
+  ]);
+  assert.strictEqual(navyColor.imageUrl, '/api/products/image/fileNavy1_large', 'imageUrl kept for back-compat');
+  const beigeColor = catalogShown.body.products[0].colors.find((c) => c.name === 'Beige');
+  assert.strictEqual(beigeColor.imageUrls.length, 1);
+  console.log('  OK imageUrls array present, imageUrl back-compat kept');
 
   server.close();
   console.log('\nALL E2E CHECKS PASSED');

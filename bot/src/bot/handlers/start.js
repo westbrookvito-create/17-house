@@ -29,9 +29,33 @@ function register(bot) {
     return ctx.replyWithHTML(text, openAppKeyboard());
   });
 
+  // Таблица размеров — те же 2 картинки, что и hero.jpg, отдаются прямо
+  // с задеплоенного мини-аппа (webapp/public/size-chart-1.jpg, size-chart-2.jpg).
+  async function sendSizeChart(ctx) {
+    if (!config.webappUrl) {
+      return ctx.reply('Таблица размеров временно недоступна.');
+    }
+    try {
+      return await ctx.replyWithMediaGroup([
+        { type: 'photo', media: `${config.webappUrl}/size-chart-1.jpg` },
+        { type: 'photo', media: `${config.webappUrl}/size-chart-2.jpg` },
+      ]);
+    } catch (err) {
+      console.error('[start] failed to send size chart', err.message);
+      return ctx.reply('Не удалось отправить таблицу размеров, попробуйте позже.');
+    }
+  }
+
+  bot.action('size_chart', async (ctx) => {
+    await ctx.answerCbQuery();
+    return sendSizeChart(ctx);
+  });
+
+  bot.command('size', (ctx) => sendSizeChart(ctx));
+
   bot.help((ctx) =>
     ctx.reply(
-      'Команды:\n/start — открыть приветствие и приложение клуба\n/help — эта справка' +
+      'Команды:\n/start — открыть приветствие и приложение клуба\n/size — таблица размеров\n/help — эта справка' +
         (users.isAdmin(ctx.from.id) ? '\n/admin — панель администратора' : ''),
     ),
   );

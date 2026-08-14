@@ -91,30 +91,42 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     toast('Номер скопирован');
   }
 
+  const selectedColorObj = product.colors.find((c) => c.name === color) || product.colors[0];
+  const galleryImages = selectedColorObj?.imageUrls?.length
+    ? selectedColorObj.imageUrls
+    : selectedColorObj?.imageUrl
+      ? [selectedColorObj.imageUrl]
+      : [];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {product.colors.map((c) => (
-        <button
-          key={c.name}
-          className="color-plate"
-          onClick={() => {
-            if (stage !== 'select') return;
-            setColor(c.name);
-            hapticSelect();
-          }}
-        >
-          <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
-            {c.imageUrl ? (
-              <img src={buildImageUrl(c.imageUrl)} alt={c.name} />
-            ) : (
-              <span className="serif" style={{ opacity: 0.55, fontSize: 15 }}>
-                {product.name}
-              </span>
-            )}
-          </div>
-          <span className="color-plate-label serif">{c.name}</span>
-        </button>
-      ))}
+      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
+
+      {product.colors.map((c) => {
+        const thumb = c.imageUrls?.[0] || c.imageUrl;
+        return (
+          <button
+            key={c.name}
+            className="color-plate"
+            onClick={() => {
+              if (stage !== 'select') return;
+              setColor(c.name);
+              hapticSelect();
+            }}
+          >
+            <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
+              {thumb ? (
+                <img src={buildImageUrl(thumb)} alt={c.name} />
+              ) : (
+                <span className="serif" style={{ opacity: 0.55, fontSize: 15 }}>
+                  {product.name}
+                </span>
+              )}
+            </div>
+            <span className="color-plate-label serif">{c.name}</span>
+          </button>
+        );
+      })}
 
       {product.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>
@@ -224,6 +236,34 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
           <button className="btn btn-primary" onClick={handleCopyPhone}>
             Скопировать номер
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductGallery({ images, alt }) {
+  const [index, setIndex] = useState(0);
+
+  function handleScroll(e) {
+    const el = e.target;
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+  }
+
+  return (
+    <div className="product-gallery">
+      <div className="product-gallery-track" onScroll={handleScroll}>
+        {images.map((url, i) => (
+          <div className="product-gallery-item" key={i}>
+            <img src={buildImageUrl(url)} alt={alt} />
+          </div>
+        ))}
+      </div>
+      {images.length > 1 && (
+        <div className="product-gallery-dots">
+          {images.map((_, i) => (
+            <span key={i} className={`product-gallery-dot${i === index ? ' active' : ''}`} />
+          ))}
         </div>
       )}
     </div>
