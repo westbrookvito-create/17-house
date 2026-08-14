@@ -283,10 +283,14 @@ function register(bot) {
     const bonusNote = justUnlocked
       ? `\n\n🎁 Поздравляем! Вам разблокирована скидка ${config.bonusPercent}% на будущие заказы.`
       : '';
+    const firstPurchaseNote =
+      user.shirts_purchased === 1
+        ? '\n\n🪪 Это ваша первая покупка — теперь в разделе «Визитка клуба» открыт доступ в закрытый канал.'
+        : '';
 
     return ctx.telegram.sendMessage(
       user.telegram_id,
-      `✅ Ваш заказ #${id} «${order.productName}» оплачен и принят в работу.${bonusNote}`,
+      `✅ Ваш заказ #${id} «${order.productName}» оплачен и принят в работу.${firstPurchaseNote}${bonusNote}`,
     );
   });
 

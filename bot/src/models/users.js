@@ -3,22 +3,6 @@ const config = require('../config');
 
 const STATUS_DAYS = 365;
 
-function nextMemberNumber() {
-  const row = db.prepare(`SELECT value FROM counters WHERE name = 'member_number'`).get();
-  if (!row) {
-    // Первый участник клуба получает номер #0017 — отсылка к названию 17 House.
-    db.prepare(`INSERT INTO counters (name, value) VALUES ('member_number', 17)`).run();
-    return 17;
-  }
-  const next = row.value + 1;
-  db.prepare(`UPDATE counters SET value = ? WHERE name = 'member_number'`).run(next);
-  return next;
-}
-
-function formatCode(n) {
-  return String(n).padStart(4, '0');
-}
-
 function getByTelegramId(telegramId) {
   return db.prepare(`SELECT * FROM users WHERE telegram_id = ?`).get(String(telegramId));
 }
@@ -36,21 +20,27 @@ function getOrCreate(tgUser) {
 
   const now = new Date();
   const until = new Date(now.getTime() + STATUS_DAYS * 24 * 3600 * 1000);
-  const memberCode = formatCode(nextMemberNumber());
   const isAdmin = config.adminIds.includes(String(tgUser.id)) ? 1 : 0;
 
-  db.prepare(
-    `INSERT INTO users (telegram_id, username, first_name, member_code, status, joined_at, status_until, is_admin)
-     VALUES (?, ?, ?, ?, 'member', ?, ?, ?)`,
-  ).run(
-    String(tgUser.id),
-    tgUser.username || null,
-    tgUser.first_name || null,
-    memberCode,
-    now.toISOString(),
-    until.toISOString(),
-    isAdmin,
-  );
+  // member_code — простой порядковый номер регистрации (1, 2, 3, ...),
+  // временно совпадает с telegram_id до вставки, затем заменяется на id строки.
+  const info = db
+    .prepare(
+      `INSERT INTO users (telegram_id, username, first_name, member_code, status, joined_at, status_until, is_admin)
+       VALUES (?, ?, ?, ?, 'member', ?, ?, ?)`,
+    )
+    .run(
+      String(tgUser.id),
+      tgUser.username || null,
+      tgUser.first_name || null,
+      'pending',
+      now.toISOString(),
+      until.toISOString(),
+      isAdmin,
+    );
+
+  const memberCode = String(info.lastInsertRowid);
+  db.prepare(`UPDATE users SET member_code = ? WHERE id = ?`).run(memberCode, info.lastInsertRowid);
 
   return getByTelegramId(tgUser.id);
 }

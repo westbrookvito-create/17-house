@@ -33,19 +33,18 @@ export default function Shirts() {
       )}
 
       {products?.map((p) => (
-        <ProductCard key={p.id} product={p} bonusUnlocked={profile?.bonusUnlocked} toast={toast} />
+        <ProductBlock key={p.id} product={p} bonusUnlocked={profile?.bonusUnlocked} toast={toast} />
       ))}
     </div>
   );
 }
 
-function ProductCard({ product, bonusUnlocked, toast }) {
+function ProductBlock({ product, bonusUnlocked, toast }) {
   const [color, setColor] = useState(product.colors[0]?.name || null);
   const [size, setSize] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [ordered, setOrdered] = useState(false);
 
-  const activeColor = product.colors.find((c) => c.name === color) || product.colors[0];
   const finalPrice = bonusUnlocked ? Math.round(product.price * 0.9) : product.price;
 
   async function handleBuy() {
@@ -56,7 +55,7 @@ function ProductCard({ product, bonusUnlocked, toast }) {
       setOrdered(true);
       hapticSuccess();
       toast('Заказ отправлен! Мы напишем в этот чат после подтверждения оплаты.');
-    } catch (err) {
+    } catch {
       hapticError();
       toast('Не получилось оформить заказ. Попробуйте ещё раз.');
     } finally {
@@ -65,68 +64,61 @@ function ProductCard({ product, bonusUnlocked, toast }) {
   }
 
   return (
-    <div className="product-card">
-      <div className="product-image">
-        {activeColor?.imageUrl ? (
-          <img src={buildImageUrl(activeColor.imageUrl)} alt={activeColor.name} />
-        ) : (
-          <span>{product.name}</span>
-        )}
-      </div>
-      <div className="product-body">
-        <div className="row-between">
-          <h3 className="serif" style={{ fontSize: 18 }}>
-            {product.name}
-          </h3>
-          <div style={{ textAlign: 'right' }}>
-            {bonusUnlocked && (
-              <div className="muted" style={{ textDecoration: 'line-through', fontSize: 12 }}>
-                {product.price} ₽
-              </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {product.colors.map((c) => (
+        <button
+          key={c.name}
+          className="color-plate"
+          onClick={() => {
+            setColor(c.name);
+            hapticSelect();
+          }}
+        >
+          <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
+            {c.imageUrl ? (
+              <img src={buildImageUrl(c.imageUrl)} alt={c.name} />
+            ) : (
+              <span className="serif" style={{ opacity: 0.55, fontSize: 15 }}>
+                {product.name}
+              </span>
             )}
-            <div style={{ fontWeight: 600 }}>{finalPrice} ₽</div>
           </div>
-        </div>
-        {product.description && <p className="muted">{product.description}</p>}
-
-        {product.colors.length > 0 && (
-          <div className="color-dots">
-            {product.colors.map((c) => (
-              <button
-                key={c.name}
-                className={`color-chip${c.name === color ? ' selected' : ''}`}
-                onClick={() => {
-                  setColor(c.name);
-                  hapticSelect();
-                }}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {product.sizes.length > 0 && (
-          <div className="size-row">
-            {product.sizes.map((s) => (
-              <button
-                key={s}
-                className={`size-chip${s === size ? ' selected' : ''}`}
-                onClick={() => {
-                  setSize(s);
-                  hapticSelect();
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <button className="btn btn-primary" disabled={!size || submitting || ordered} onClick={handleBuy}>
-          {ordered ? 'Заказ отправлен ✓' : submitting ? 'Отправляем…' : 'Купить футболку'}
+          <span className="color-plate-label serif">{c.name}</span>
         </button>
+      ))}
+
+      {product.sizes.length > 0 && (
+        <div className="size-row" style={{ justifyContent: 'center' }}>
+          {product.sizes.map((s) => (
+            <button
+              key={s}
+              className={`size-chip${s === size ? ' selected' : ''}`}
+              onClick={() => {
+                setSize(s);
+                hapticSelect();
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="row-between" style={{ padding: '0 2px' }}>
+        <span className="muted">Цена</span>
+        <span style={{ fontWeight: 600 }}>
+          {bonusUnlocked && (
+            <span className="muted" style={{ textDecoration: 'line-through', marginRight: 8, fontWeight: 400 }}>
+              {product.price} ₽
+            </span>
+          )}
+          {finalPrice} ₽
+        </span>
       </div>
+
+      <button className="btn btn-primary" disabled={!size || submitting || ordered} onClick={handleBuy}>
+        {ordered ? 'Заказ отправлен ✓' : submitting ? 'Отправляем…' : 'Купить футболку'}
+      </button>
     </div>
   );
 }

@@ -31,6 +31,7 @@ router.get('/club-card', (req, res) => {
     statusUntil: u.status_until,
     clubName: config.clubName,
     channelUrl: config.clubChannelUrl,
+    hasPurchased: u.shirts_purchased >= 1,
   });
 });
 
