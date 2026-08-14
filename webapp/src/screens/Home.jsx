@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import BottleMark from '../components/BottleMark';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -9,11 +8,7 @@ export default function Home() {
     <div className="screen">
       <Header title="17 House" showLogo />
 
-      <div className="hero hero-lg">
-        <div style={{ position: 'relative', zIndex: 1, opacity: 0.9 }}>
-          <BottleMark size={48} />
-        </div>
-      </div>
+      <div className="hero hero-lg" style={{ backgroundImage: 'url(/hero.jpg)' }} />
 
       <div className="card" style={{ gap: 14, display: 'flex', flexDirection: 'column' }}>
         <h2 className="serif" style={{ fontSize: 23 }}>

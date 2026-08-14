@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import BottleMark from '../components/BottleMark';
+import Logo from '../components/Logo';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { copyToClipboard, hapticSuccess } from '../telegram';
@@ -36,7 +36,7 @@ export default function ClubCard() {
       {card && (
         <>
           <div className="member-card">
-            <BottleMark size={26} color="var(--beige)" />
+            <Logo height={34} />
             <div className="serif" style={{ fontSize: 16, marginTop: 10 }}>
               {card.clubName}
             </div>

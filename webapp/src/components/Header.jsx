@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import BottleMark from './BottleMark';
+import Logo from './Logo';
 
 export default function Header({ title, showBack, showLogo }) {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function Header({ title, showBack, showLogo }) {
           ‹
         </button>
       ) : showLogo ? (
-        <BottleMark size={24} color="var(--text)" />
+        <Logo height={28} />
       ) : (
         <div style={{ width: 36 }} />
       )}

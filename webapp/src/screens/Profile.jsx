@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import BottleMark from '../components/BottleMark';
+import Logo from '../components/Logo';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { getTelegramUser } from '../telegram';
@@ -64,7 +64,7 @@ export default function Profile() {
               <span className="serif" style={{ fontSize: 16 }}>
                 #{user.memberCode}
               </span>
-              <BottleMark size={18} color="var(--text-muted)" />
+              <Logo height={20} style={{ opacity: 0.75 }} />
             </div>
           </div>
 
