@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import IconHome from './icons/Home';
-import IconBag from './icons/Bag';
+import IconShirt from './icons/Shirt';
 import IconGift from './icons/Gift';
 import IconUser from './icons/User';
 
 const TABS = [
   { path: '/', label: 'Добро пожаловать', Icon: IconHome },
-  { path: '/shirts', label: 'Каталог', Icon: IconBag },
+  { path: '/shirts', label: 'Каталог', Icon: IconShirt },
   { path: '/bonus', label: 'Бонусы', Icon: IconGift },
   { path: '/profile', label: 'Профиль', Icon: IconUser },
 ];
