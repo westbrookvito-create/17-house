@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS orders (
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,
   paid_at TEXT,
+  shipped_at TEXT,
+  received_at TEXT,
   delivery_method TEXT,
   recipient_name TEXT,
   phone TEXT,
@@ -66,6 +68,8 @@ CREATE TABLE IF NOT EXISTS counters (
 // Идемпотентная миграция для баз, созданных до появления полей доставки/оплаты.
 const orderColumns = new Set(db.prepare(`PRAGMA table_info(orders)`).all().map((c) => c.name));
 const newOrderColumns = {
+  shipped_at: 'TEXT',
+  received_at: 'TEXT',
   delivery_method: 'TEXT',
   recipient_name: 'TEXT',
   phone: 'TEXT',

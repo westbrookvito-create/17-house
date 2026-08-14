@@ -37,13 +37,53 @@ function renderDraftPreview(data) {
   );
 }
 
+const STATUS_LABELS = {
+  pending: '⏳ Ожидает оплаты',
+  paid: '✅ Оплачен',
+  shipped: '📦 Отправлен',
+  received: '📬 Получен',
+  cancelled: '❌ Отменён',
+};
+
+const STATUS_FILTERS = [
+  ['all', 'Все'],
+  ['pending', '⏳ Ожидают оплаты'],
+  ['paid', '✅ Оплачены'],
+  ['shipped', '📦 Отправлены'],
+  ['received', '📬 Получены'],
+  ['cancelled', '❌ Отменены'],
+];
+
+const DELIVERY_FILTERS = [
+  ['all', 'Все способы'],
+  ['yandex', 'Яндекс Доставка'],
+  ['cdek', 'СДЭК'],
+];
+
 function renderOrderText(order, user) {
   const displayName = user?.username ? `@${user.username}` : user?.first_name || `id${order.userId}`;
   return (
-    `🧾 <b>Заказ #${order.id}</b> (${order.status})\n` +
+    `🧾 <b>Заказ #${order.id}</b> — ${STATUS_LABELS[order.status] || order.status}\n` +
     `От: ${displayName}\n\n` +
     formatOrderDetails(order)
   );
+}
+
+// Какие действия доступны из текущего статуса заказа — админ всегда видит
+// полную карточку заказа, кнопки просто меняются по мере продвижения статуса.
+function orderActionsKeyboard(order) {
+  const rows = [];
+  if (order.status === 'pending') {
+    rows.push([
+      Markup.button.callback('✅ Подтвердить оплату', `confirm_order:${order.id}`),
+      Markup.button.callback('❌ Отменить', `cancel_order:${order.id}`),
+    ]);
+  } else if (order.status === 'paid') {
+    rows.push([Markup.button.callback('📦 Отметить отправленным', `ship_order:${order.id}`)]);
+  } else if (order.status === 'shipped') {
+    rows.push([Markup.button.callback('📬 Отметить полученным', `receive_order:${order.id}`)]);
+  }
+  return { inline_keyboard: rows };
 }
 
 function productEditKeyboard(p) {
@@ -151,22 +191,34 @@ function register(bot) {
     return ctx.reply('Товары клуба:', Markup.inlineKeyboard(rows));
   });
 
-  bot.action('admin:list_orders', async (ctx) => {
+  bot.action('admin:list_orders', (ctx) => {
     if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    ctx.answerCbQuery();
+    const rows = STATUS_FILTERS.map(([value, label]) => [Markup.button.callback(label, `orders:status:${value}`)]);
+    return ctx.reply('Все заказы клуба. Сначала выберите статус:', Markup.inlineKeyboard(rows));
+  });
+
+  bot.action(/^orders:status:(all|pending|paid|shipped|received|cancelled)$/, (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    const status = ctx.match[1];
+    ctx.answerCbQuery();
+    const rows = DELIVERY_FILTERS.map(([value, label]) => [
+      Markup.button.callback(label, `orders:show:${status}:${value}`),
+    ]);
+    return ctx.reply('Теперь способ доставки:', Markup.inlineKeyboard(rows));
+  });
+
+  bot.action(/^orders:show:(all|pending|paid|shipped|received|cancelled):(all|yandex|cdek)$/, async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    const [, status, deliveryMethod] = ctx.match;
     await ctx.answerCbQuery();
-    const pending = ordersModel.listPending();
-    if (!pending.length) return ctx.reply('Нет заказов, ожидающих подтверждения.');
-    for (const order of pending) {
+    const list = ordersModel.listFiltered({ status, deliveryMethod });
+    if (!list.length) return ctx.reply('Заказов по этому фильтру не найдено.');
+    await ctx.reply(`Найдено заказов: ${list.length}`);
+    for (const order of list) {
       const user = usersModel.getById(order.userId);
       // eslint-disable-next-line no-await-in-loop
-      await ctx.replyWithHTML(renderOrderText(order, user), {
-        reply_markup: Markup.inlineKeyboard([
-          [
-            Markup.button.callback('✅ Подтвердить оплату', `confirm_order:${order.id}`),
-            Markup.button.callback('❌ Отменить', `cancel_order:${order.id}`),
-          ],
-        ]).reply_markup,
-      });
+      await ctx.replyWithHTML(renderOrderText(order, user), { reply_markup: orderActionsKeyboard(order) });
     }
   });
 
@@ -265,17 +317,29 @@ function register(bot) {
 
   // --- Orders confirm/cancel (also triggered from order-created notifications) --
 
+  // Карточка заказа в чате всегда переписывается на актуальную (полные детали +
+  // новый статус + доступные дальше кнопки), а не стирается коротким текстом —
+  // иначе адрес ПВЗ и реквизиты пропадали бы из вида сразу после подтверждения.
+  async function refreshOrderMessage(ctx, order, user) {
+    await ctx
+      .editMessageText(renderOrderText(order, user), {
+        parse_mode: 'HTML',
+        reply_markup: orderActionsKeyboard(order),
+      })
+      .catch(() => {});
+  }
+
   bot.action(/^confirm_order:(\d+)$/, async (ctx) => {
     if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
     const id = Number(ctx.match[1]);
-    const order = ordersModel.getById(id);
-    if (!order) return ctx.answerCbQuery('Заказ не найден');
-    if (order.status !== 'pending') return ctx.answerCbQuery('Уже обработан');
+    const existing = ordersModel.getById(id);
+    if (!existing) return ctx.answerCbQuery('Заказ не найден');
+    if (existing.status !== 'pending') return ctx.answerCbQuery('Уже обработан');
 
-    ordersModel.setStatus(id, 'paid');
+    const order = ordersModel.setStatus(id, 'paid');
     const user = usersModel.registerShirtPurchase(order.userId);
     await ctx.answerCbQuery('Оплата подтверждена');
-    await ctx.editMessageText(`✅ Заказ #${id} оплачен.`).catch(() => {});
+    await refreshOrderMessage(ctx, order, user);
 
     const justUnlocked = user.bonus_unlocked && user.shirts_purchased === config.bonusThreshold;
     const bonusNote = justUnlocked
@@ -295,18 +359,51 @@ function register(bot) {
   bot.action(/^cancel_order:(\d+)$/, async (ctx) => {
     if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
     const id = Number(ctx.match[1]);
-    const order = ordersModel.getById(id);
-    if (!order) return ctx.answerCbQuery('Заказ не найден');
-    if (order.status !== 'pending') return ctx.answerCbQuery('Уже обработан');
+    const existing = ordersModel.getById(id);
+    if (!existing) return ctx.answerCbQuery('Заказ не найден');
+    if (existing.status !== 'pending') return ctx.answerCbQuery('Уже обработан');
 
-    ordersModel.setStatus(id, 'cancelled');
+    const order = ordersModel.setStatus(id, 'cancelled');
     await ctx.answerCbQuery('Заказ отменён');
-    await ctx.editMessageText(`❌ Заказ #${id} отменён.`).catch(() => {});
-
     const user = usersModel.getById(order.userId);
+    await refreshOrderMessage(ctx, order, user);
+
     return ctx.telegram.sendMessage(
       user.telegram_id,
       `❌ Ваш заказ #${id} «${order.productName}» отменён. Если это ошибка — напишите нам в клубе.`,
+    );
+  });
+
+  bot.action(/^ship_order:(\d+)$/, async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    const id = Number(ctx.match[1]);
+    const existing = ordersModel.getById(id);
+    if (!existing) return ctx.answerCbQuery('Заказ не найден');
+    if (existing.status !== 'paid') return ctx.answerCbQuery('Сначала подтвердите оплату');
+
+    const order = ordersModel.setStatus(id, 'shipped');
+    await ctx.answerCbQuery('Отмечено как отправлено');
+    const user = usersModel.getById(order.userId);
+    await refreshOrderMessage(ctx, order, user);
+
+    return ctx.telegram.sendMessage(user.telegram_id, `📦 Ваш заказ #${id} «${order.productName}» отправлен.`);
+  });
+
+  bot.action(/^receive_order:(\d+)$/, async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    const id = Number(ctx.match[1]);
+    const existing = ordersModel.getById(id);
+    if (!existing) return ctx.answerCbQuery('Заказ не найден');
+    if (existing.status !== 'shipped') return ctx.answerCbQuery('Заказ ещё не отправлен');
+
+    const order = ordersModel.setStatus(id, 'received');
+    await ctx.answerCbQuery('Отмечено как получено');
+    const user = usersModel.getById(order.userId);
+    await refreshOrderMessage(ctx, order, user);
+
+    return ctx.telegram.sendMessage(
+      user.telegram_id,
+      `📬 Заказ #${id} «${order.productName}» отмечен как полученный. Спасибо за покупку!`,
     );
   });
 

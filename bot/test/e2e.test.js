@@ -129,6 +129,20 @@ function lastMessageTo(chatId) {
   return calls[calls.length - 1]?.payload.text;
 }
 
+function sentTextsSince(sinceIndex, chatId) {
+  return apiCalls
+    .slice(sinceIndex)
+    .filter((c) => c.method === 'sendMessage' && String(c.payload.chat_id) === String(chatId))
+    .map((c) => c.payload.text);
+}
+
+function lastEditedTextTo(chatId) {
+  const calls = apiCalls.filter(
+    (c) => c.method === 'editMessageText' && String(c.payload.chat_id) === String(chatId),
+  );
+  return calls[calls.length - 1]?.payload.text;
+}
+
 async function main() {
   console.log('== /start creates user + issues member card ==');
   await sendText(USER_ID, '/start');
@@ -283,6 +297,7 @@ async function main() {
 
   console.log('== place 3 real orders and confirm each via admin action ==');
   const validRequisiteKeys = config.paymentRequisites.map((r) => `${r.name}|${r.phone}|${r.bank}`);
+  const paidOrderIds = [];
   for (let i = 0; i < 3; i++) {
     const created = await api('/api/orders', {
       method: 'POST',
@@ -321,8 +336,41 @@ async function main() {
     assert.ok(buyerNotice.includes('оплачен'), 'buyer should get paid confirmation');
     if (i === 0) assert.ok(buyerNotice.includes('первая покупка'), 'first purchase note expected');
     if (i === 2) assert.ok(buyerNotice.includes('разблокирована'), 'bonus unlock note expected on 3rd');
+    paidOrderIds.push(orderId);
   }
   console.log('  OK 3 orders placed + confirmed, notifications include delivery + payment info');
+
+  console.log('== confirming an order keeps its full details visible (does not wipe them) ==');
+  const confirmedEditText = lastEditedTextTo(ADMIN_ID);
+  assert.ok(confirmedEditText.includes('✅ Оплачен'), 'edited message should show the new status label');
+  assert.ok(confirmedEditText.includes('ФИО получателя: Иван Иванов'), 'recipient name must stay visible');
+  assert.ok(confirmedEditText.includes('Адрес ПВЗ:'), 'pickup address must stay visible');
+  console.log('  OK order details preserved after status change');
+
+  console.log('== admin advances an order through shipped -> received, with guards ==');
+  const trackedOrderId = paidOrderIds[0];
+  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`);
+  assert.strictEqual(
+    ordersModel.getById(trackedOrderId).status,
+    'paid',
+    'cannot mark received before shipped',
+  );
+
+  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`);
+  assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'shipped');
+  assert.ok(lastMessageTo(USER_ID).includes('отправлен'), 'buyer should be notified of shipping');
+  const editedAfterShip = lastEditedTextTo(ADMIN_ID);
+  assert.ok(editedAfterShip.includes('📦 Отправлен'));
+  assert.ok(editedAfterShip.includes('Адрес ПВЗ:'), 'shipped card must still show pickup address');
+
+  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`);
+  assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'shipped', 'double-ship must be a no-op');
+
+  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`);
+  assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'received');
+  assert.ok(lastMessageTo(USER_ID).includes('получен'), 'buyer should be notified of delivery');
+  assert.ok(lastEditedTextTo(ADMIN_ID).includes('📬 Получен'));
+  console.log('  OK shipped -> received flow works, skipping a step is blocked');
 
   console.log('== club-card hasPurchased flips true after first purchase ==');
   cc = await api('/api/profile/club-card', { headers: authHeaders(USER_ID) });
@@ -365,6 +413,41 @@ async function main() {
   const sendCountAfter = apiCalls.filter((c) => c.method === 'sendMessage').length;
   assert.strictEqual(sendCountAfter, sendCountBefore, 're-confirming a paid order must not send another message');
   console.log('  OK idempotent');
+
+  console.log('== admin can browse the complete order history with status + delivery filters ==');
+  await sendCallback(ADMIN_ID, 'admin:list_orders');
+  assert.ok(lastMessageTo(ADMIN_ID).includes('Все заказы клуба'));
+
+  await sendCallback(ADMIN_ID, 'orders:status:all');
+  assert.ok(lastMessageTo(ADMIN_ID).includes('способ доставки'));
+
+  async function assertFilterCount(status, deliveryMethod) {
+    const expected = ordersModel.listFiltered({ status, deliveryMethod }).length;
+    const sinceIndex = apiCalls.length;
+    await sendCallback(ADMIN_ID, `orders:show:${status}:${deliveryMethod}`);
+    const texts = sentTextsSince(sinceIndex, ADMIN_ID);
+    assert.ok(
+      texts.some((t) => t.includes(`Найдено заказов: ${expected}`)),
+      `expected a "Найдено заказов: ${expected}" summary for status=${status} delivery=${deliveryMethod}`,
+    );
+    // every order that should match the filter must actually appear in the sent cards
+    assert.strictEqual(texts.length, expected + (expected > 0 ? 1 : 0));
+    return expected;
+  }
+
+  const totalOrders = await assertFilterCount('all', 'all');
+  assert.ok(totalOrders >= 5, 'every order ever placed in this test should be counted');
+
+  const cancelledCount = await assertFilterCount('cancelled', 'all');
+  assert.strictEqual(cancelledCount, 1, 'exactly the earlier cancelled order should match this filter');
+
+  const receivedCount = await assertFilterCount('received', 'all');
+  assert.strictEqual(receivedCount, 1, 'exactly the order taken through ship -> receive should match');
+
+  const cdekPaidCount = await assertFilterCount('paid', 'cdek');
+  const yandexPaidCount = await assertFilterCount('paid', 'yandex');
+  assert.notStrictEqual(cdekPaidCount, yandexPaidCount, 'delivery-method filter should actually narrow results');
+  console.log('  OK filter menu returns correct counts for every status + delivery combination');
 
   console.log('== contact-manager relay forwards plain text to admin ==');
   const beforeForward = apiCalls.filter((c) => c.method === 'forwardMessage').length;

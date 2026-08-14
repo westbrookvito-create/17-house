@@ -1,5 +1,14 @@
 const db = require('../db');
 
+const STATUSES = ['pending', 'paid', 'shipped', 'received', 'cancelled'];
+
+// Какую *_at колонку проставлять при переходе в этот статус.
+const STATUS_TIMESTAMP_COLUMN = {
+  paid: 'paid_at',
+  shipped: 'shipped_at',
+  received: 'received_at',
+};
+
 function rowToOrder(row) {
   if (!row) return null;
   return {
@@ -15,6 +24,8 @@ function rowToOrder(row) {
     status: row.status,
     createdAt: row.created_at,
     paidAt: row.paid_at,
+    shippedAt: row.shipped_at,
+    receivedAt: row.received_at,
     deliveryMethod: row.delivery_method,
     recipientName: row.recipient_name,
     phone: row.phone,
@@ -83,17 +94,33 @@ function listByUser(userId) {
     .map(rowToOrder);
 }
 
-function listPending() {
+// Полная история заказов админа, с необязательным фильтром по статусу и/или способу доставки.
+function listFiltered({ status, deliveryMethod } = {}) {
+  const clauses = [];
+  const params = [];
+  if (status && status !== 'all') {
+    clauses.push('status = ?');
+    params.push(status);
+  }
+  if (deliveryMethod && deliveryMethod !== 'all') {
+    clauses.push('delivery_method = ?');
+    params.push(deliveryMethod);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db
-    .prepare(`SELECT * FROM orders WHERE status = 'pending' ORDER BY id ASC`)
-    .all()
+    .prepare(`SELECT * FROM orders ${where} ORDER BY id DESC`)
+    .all(...params)
     .map(rowToOrder);
 }
 
 function setStatus(id, status) {
-  const paidAt = status === 'paid' ? new Date().toISOString() : null;
-  db.prepare(`UPDATE orders SET status = ?, paid_at = COALESCE(?, paid_at) WHERE id = ?`).run(status, paidAt, id);
+  const column = STATUS_TIMESTAMP_COLUMN[status];
+  if (column) {
+    db.prepare(`UPDATE orders SET status = ?, ${column} = ? WHERE id = ?`).run(status, new Date().toISOString(), id);
+  } else {
+    db.prepare(`UPDATE orders SET status = ? WHERE id = ?`).run(status, id);
+  }
   return getById(id);
 }
 
-module.exports = { create, getById, listByUser, listPending, setStatus };
+module.exports = { STATUSES, create, getById, listByUser, listFiltered, setStatus };
