@@ -21,6 +21,26 @@ function register(bot) {
         (users.isAdmin(ctx.from.id) ? '\n/admin — панель администратора' : ''),
     ),
   );
+
+  // Любое обычное сообщение от участника (не команда, не от админа) пересылаем
+  // менеджеру клуба — так работает кнопка «Связаться с менеджером» в мини-аппе.
+  bot.on('text', async (ctx) => {
+    if (users.isAdmin(ctx.from.id)) return;
+    if (ctx.message.text.trim().startsWith('/')) return;
+
+    const user = users.getOrCreate(ctx.from);
+
+    for (const adminId of config.adminIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await ctx.telegram
+        .forwardMessage(adminId, ctx.chat.id, ctx.message.message_id)
+        .catch((err) => console.error('[start] forward to admin failed', err.message));
+    }
+
+    return ctx.reply(
+      `Сообщение передано менеджеру ${config.clubName} (карта #${user.member_code}). Мы ответим здесь в ближайшее время.`,
+    );
+  });
 }
 
 module.exports = { register };
