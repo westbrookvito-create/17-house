@@ -88,12 +88,32 @@ export default function Profile() {
           </div>
 
           <button className="list-item" style={{ width: '100%' }} onClick={() => toast('Настройки скоро появятся')}>
-            <span>⚙️ Настройки</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                src="/icons/settings.png"
+                alt=""
+                className="list-item-icon"
+                onError={(e) => {
+                  e.currentTarget.style.visibility = 'hidden';
+                }}
+              />
+              Настройки
+            </span>
             <span className="muted">›</span>
           </button>
 
           <button className="list-item" style={{ width: '100%' }} onClick={handleContactManager}>
-            <span>💬 Связаться с менеджером</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                src="/icons/manager.png"
+                alt=""
+                className="list-item-icon"
+                onError={(e) => {
+                  e.currentTarget.style.visibility = 'hidden';
+                }}
+              />
+              Связаться с менеджером
+            </span>
             <span className="muted">›</span>
           </button>
         </>
