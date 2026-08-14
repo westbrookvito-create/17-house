@@ -6,21 +6,21 @@ export default function Home() {
 
   return (
     <div className="screen home-screen">
-      <div className="topbar">
-        <h1 className="serif" style={{ fontSize: 32 }}>
+      <div className="topbar" style={{ justifyContent: 'center', gap: 10 }}>
+        <Logo height={36} />
+        <h1 className="serif" style={{ fontSize: 30 }}>
           17 House
         </h1>
-        <Logo height={50} />
       </div>
 
       <div className="hero hero-full" style={{ backgroundImage: 'url(/hero.jpg)' }} />
 
       <div className="card card-fill">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h2 className="serif" style={{ fontSize: 23 }}>
             Добро пожаловать в 17 House
           </h2>
-          <p className="muted">
+          <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
             Закрытый клуб по интересам. Привилегии в ресторанах. Мерч. Жизнь в стиле.
           </p>
         </div>
