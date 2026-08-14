@@ -21,7 +21,11 @@ export default function Home() {
             Добро пожаловать в 17 House
           </h2>
           <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
-            Закрытый клуб по интересам. Привилегии в ресторанах. Мерч. Жизнь в стиле.
+            Закрытый клуб по интересам
+            <br />
+            Привилегии в ресторанах. Мерч
+            <br />
+            Жизнь в стиле
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/card')}>
