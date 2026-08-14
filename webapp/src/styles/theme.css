@@ -332,6 +332,11 @@ a {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
+.member-card-light {
+  background: linear-gradient(155deg, #2c3c68 0%, #1c2847 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
 .member-card-code {
   font-family: 'Playfair Display', serif;
   font-size: 15px;

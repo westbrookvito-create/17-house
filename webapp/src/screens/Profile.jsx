@@ -4,7 +4,6 @@ import Header from '../components/Header';
 import Logo from '../components/Logo';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
-import { getTelegramUser } from '../telegram';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -17,7 +16,6 @@ export default function Profile() {
   const [error, setError] = useState('');
   const toast = useToast();
   const navigate = useNavigate();
-  const tgUser = getTelegramUser();
 
   useEffect(() => {
     api
@@ -39,33 +37,17 @@ export default function Profile() {
 
       {user && (
         <>
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {tgUser?.photo_url ? (
-              <img
-                src={tgUser.photo_url}
-                alt=""
-                className="avatar"
-                style={{ objectFit: 'cover', fontSize: 0 }}
-              />
-            ) : (
-              <div className="avatar">{(user.firstName || 'U')[0].toUpperCase()}</div>
-            )}
-            <div>
-              <div className="serif" style={{ fontSize: 19 }}>
-                {user.firstName || 'Участник'}
-              </div>
-              <div className="muted">Участник клуба</div>
-            </div>
-          </div>
-
-          <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="muted">Карта участника</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="serif" style={{ fontSize: 16 }}>
+          <div
+            className="member-card member-card-light"
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="member-card-code">Карта участника</span>
+              <span className="serif" style={{ fontSize: 34, lineHeight: 1 }}>
                 #{user.memberCode}
               </span>
-              <Logo height={20} style={{ opacity: 0.75 }} />
             </div>
+            <Logo height={60} />
           </div>
 
           <div className="card" style={{ display: 'flex', gap: 12 }}>
