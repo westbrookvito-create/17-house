@@ -26,9 +26,9 @@ export default function Bonus() {
 
       {bonus && (
         <>
-          <div className="hero" style={{ minHeight: 160 }} />
+          <div className="hero" style={{ minHeight: '40vh', backgroundImage: 'url(/bonus.jpg)' }} />
 
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <h2 className="serif" style={{ fontSize: 20 }}>
               Бонусы от 17 House
             </h2>
