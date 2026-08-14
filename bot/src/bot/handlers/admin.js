@@ -4,6 +4,7 @@ const productsModel = require('../../models/products');
 const ordersModel = require('../../models/orders');
 const usersModel = require('../../models/users');
 const { adminMenuKeyboard } = require('../keyboards');
+const { formatOrderDetails } = require('../../api/routes/orders');
 
 // Простая in-memory машина состояний для пошаговых диалогов админа
 // (добавление / редактирование товара). Ключ — telegram user id.
@@ -38,13 +39,10 @@ function renderDraftPreview(data) {
 
 function renderOrderText(order, user) {
   const displayName = user?.username ? `@${user.username}` : user?.first_name || `id${order.userId}`;
-  const discountLine = order.discountPercent ? `\nСкидка: ${order.discountPercent}%` : '';
   return (
     `🧾 <b>Заказ #${order.id}</b> (${order.status})\n` +
-    `От: ${displayName}\n` +
-    `Товар: ${order.productName}\n` +
-    `Цвет: ${order.color || '—'}, размер: ${order.size || '—'}\n` +
-    `Сумма: ${order.price} ₽${discountLine}`
+    `От: ${displayName}\n\n` +
+    formatOrderDetails(order)
   );
 }
 

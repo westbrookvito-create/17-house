@@ -15,16 +15,60 @@ function rowToOrder(row) {
     status: row.status,
     createdAt: row.created_at,
     paidAt: row.paid_at,
+    deliveryMethod: row.delivery_method,
+    recipientName: row.recipient_name,
+    phone: row.phone,
+    pvzAddress: row.pvz_address,
+    payment: {
+      name: row.payment_name,
+      phone: row.payment_phone,
+      bank: row.payment_bank,
+    },
   };
 }
 
-function create({ userId, productId, productName, color, size, basePrice, price, discountPercent }) {
+function create({
+  userId,
+  productId,
+  productName,
+  color,
+  size,
+  basePrice,
+  price,
+  discountPercent,
+  deliveryMethod,
+  recipientName,
+  phone,
+  pvzAddress,
+  payment,
+}) {
   const info = db
     .prepare(
-      `INSERT INTO orders (user_id, product_id, product_name, color, size, base_price, price, discount_percent, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      `INSERT INTO orders (
+         user_id, product_id, product_name, color, size, base_price, price, discount_percent,
+         status, created_at, delivery_method, recipient_name, phone, pvz_address,
+         payment_name, payment_phone, payment_bank
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(userId, productId, productName, color, size, basePrice, price, discountPercent, new Date().toISOString());
+    .run(
+      userId,
+      productId,
+      productName,
+      color,
+      size,
+      basePrice,
+      price,
+      discountPercent,
+      new Date().toISOString(),
+      deliveryMethod,
+      recipientName,
+      phone,
+      pvzAddress,
+      payment.name,
+      payment.phone,
+      payment.bank,
+    );
   return getById(info.lastInsertRowid);
 }
 

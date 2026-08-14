@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
-import { hapticSuccess, hapticError, hapticSelect } from '../telegram';
+import { hapticSuccess, hapticError, hapticSelect, copyToClipboard } from '../telegram';
+
+const DELIVERY_OPTIONS = [
+  { value: 'yandex', label: 'Яндекс Доставка' },
+  { value: 'cdek', label: 'СДЭК' },
+];
 
 export default function Shirts() {
   const [products, setProducts] = useState(null);
@@ -42,25 +47,48 @@ export default function Shirts() {
 function ProductBlock({ product, bonusUnlocked, toast }) {
   const [color, setColor] = useState(product.colors[0]?.name || null);
   const [size, setSize] = useState(null);
+  const [stage, setStage] = useState('select'); // select -> form -> payment
   const [submitting, setSubmitting] = useState(false);
-  const [ordered, setOrdered] = useState(false);
+  const [order, setOrder] = useState(null);
+  const [form, setForm] = useState({ deliveryMethod: '', recipientName: '', phone: '', pvzAddress: '' });
 
   const finalPrice = bonusUnlocked ? Math.round(product.price * 0.9) : product.price;
+  const formValid =
+    form.deliveryMethod && form.recipientName.trim() && form.phone.trim() && form.pvzAddress.trim();
 
-  async function handleBuy() {
-    if (!size) return;
+  function updateForm(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleSubmitOrder() {
+    if (!formValid) return;
     setSubmitting(true);
     try {
-      await api.createOrder({ productId: product.id, color, size });
-      setOrdered(true);
+      const res = await api.createOrder({
+        productId: product.id,
+        color,
+        size,
+        deliveryMethod: form.deliveryMethod,
+        recipientName: form.recipientName.trim(),
+        phone: form.phone.trim(),
+        pvzAddress: form.pvzAddress.trim(),
+      });
+      setOrder(res.order);
+      setStage('payment');
       hapticSuccess();
-      toast('Заказ отправлен! Мы напишем в этот чат после подтверждения оплаты.');
     } catch {
       hapticError();
       toast('Не получилось оформить заказ. Попробуйте ещё раз.');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleCopyPhone() {
+    if (!order) return;
+    await copyToClipboard(order.payment.phone);
+    hapticSuccess();
+    toast('Номер скопирован');
   }
 
   return (
@@ -70,6 +98,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
           key={c.name}
           className="color-plate"
           onClick={() => {
+            if (stage !== 'select') return;
             setColor(c.name);
             hapticSelect();
           }}
@@ -93,6 +122,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
             <button
               key={s}
               className={`size-chip${s === size ? ' selected' : ''}`}
+              disabled={stage !== 'select'}
               onClick={() => {
                 setSize(s);
                 hapticSelect();
@@ -116,9 +146,86 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
         </span>
       </div>
 
-      <button className="btn btn-primary" disabled={!size || submitting || ordered} onClick={handleBuy}>
-        {ordered ? 'Заказ отправлен ✓' : submitting ? 'Отправляем…' : 'Купить футболку'}
-      </button>
+      {stage === 'select' && (
+        <button className="btn btn-primary" disabled={!size} onClick={() => setStage('form')}>
+          Купить футболку
+        </button>
+      )}
+
+      {stage === 'form' && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h3 className="serif" style={{ fontSize: 16 }}>
+            Доставка и получатель
+          </h3>
+
+          <div className="size-row">
+            {DELIVERY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`size-chip${form.deliveryMethod === opt.value ? ' selected' : ''}`}
+                style={{ minWidth: 'auto', flex: 1 }}
+                onClick={() => updateForm('deliveryMethod', opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <input
+            className="input"
+            placeholder="ФИО (как в переводе, которым будете платить)"
+            value={form.recipientName}
+            onChange={(e) => updateForm('recipientName', e.target.value)}
+          />
+          <input
+            className="input"
+            placeholder="Номер телефона"
+            inputMode="tel"
+            value={form.phone}
+            onChange={(e) => updateForm('phone', e.target.value)}
+          />
+          <input
+            className="input"
+            placeholder="Адрес ПВЗ"
+            value={form.pvzAddress}
+            onChange={(e) => updateForm('pvzAddress', e.target.value)}
+          />
+
+          <button className="btn btn-primary" disabled={!formValid || submitting} onClick={handleSubmitOrder}>
+            {submitting ? 'Оформляем…' : 'Оформить заказ'}
+          </button>
+          <button className="btn btn-outline" disabled={submitting} onClick={() => setStage('select')}>
+            Отмена
+          </button>
+        </div>
+      )}
+
+      {stage === 'payment' && order && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h3 className="serif" style={{ fontSize: 16 }}>
+            Заказ #{order.id} оформлен ✓
+          </h3>
+          <p className="muted">
+            Переведите {order.price} ₽ по номеру телефона на реквизиты ниже. После поступления оплаты мы напишем в
+            этот чат.
+          </p>
+          <div className="row-between">
+            <span className="muted">Телефон</span>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{order.payment.phone}</span>
+          </div>
+          <div className="row-between">
+            <span className="muted">Получатель</span>
+            <span style={{ color: 'var(--text)' }}>{order.payment.name}</span>
+          </div>
+          <div className="row-between">
+            <span className="muted">Банк</span>
+            <span style={{ color: 'var(--text)' }}>{order.payment.bank}</span>
+          </div>
+          <button className="btn btn-primary" onClick={handleCopyPhone}>
+            Скопировать номер
+          </button>
+        </div>
+      )}
     </div>
   );
 }

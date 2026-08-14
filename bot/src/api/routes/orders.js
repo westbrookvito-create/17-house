@@ -8,12 +8,19 @@ const bot = require('../../bot/instance');
 const router = express.Router();
 router.use(requireTelegramAuth);
 
+const DELIVERY_METHODS = Object.keys(config.deliveryMethods);
+
+function pickPaymentRequisite() {
+  const list = config.paymentRequisites;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 router.get('/', (req, res) => {
   res.json({ orders: ordersModel.listByUser(req.dbUser.id) });
 });
 
 router.post('/', async (req, res) => {
-  const { productId, color, size } = req.body || {};
+  const { productId, color, size, deliveryMethod, recipientName, phone, pvzAddress } = req.body || {};
   const product = productsModel.getById(Number(productId));
 
   if (!product || !product.active) {
@@ -25,11 +32,18 @@ router.post('/', async (req, res) => {
   if (product.colors.length && !product.colors.some((c) => c.name === color)) {
     return res.status(400).json({ error: 'invalid_color' });
   }
+  if (!DELIVERY_METHODS.includes(deliveryMethod)) {
+    return res.status(400).json({ error: 'invalid_delivery_method' });
+  }
+  if (!recipientName?.trim() || !phone?.trim() || !pvzAddress?.trim()) {
+    return res.status(400).json({ error: 'missing_delivery_details' });
+  }
 
   const user = req.dbUser;
   const discountPercent = user.bonus_unlocked ? config.bonusPercent : 0;
   const basePrice = product.price;
   const price = Math.round(basePrice * (1 - discountPercent / 100));
+  const payment = pickPaymentRequisite();
 
   const order = ordersModel.create({
     userId: user.id,
@@ -40,6 +54,11 @@ router.post('/', async (req, res) => {
     basePrice,
     price,
     discountPercent,
+    deliveryMethod,
+    recipientName: recipientName.trim(),
+    phone: phone.trim(),
+    pvzAddress: pvzAddress.trim(),
+    payment,
   });
 
   res.json({ order });
@@ -47,18 +66,32 @@ router.post('/', async (req, res) => {
   notifyAdmins(order, user).catch((err) => console.error('[orders] admin notify failed', err.message));
 });
 
-async function notifyAdmins(order, user) {
-  const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
+function formatOrderDetails(order) {
   const discountLine = order.discountPercent
     ? `\n🎁 Скидка участника: ${order.discountPercent}% (${order.basePrice} → ${order.price} ₽)`
     : '';
+  const deliveryLabel = config.deliveryMethods[order.deliveryMethod] || order.deliveryMethod || '—';
 
-  const text =
-    `🧾 <b>Новый заказ #${order.id}</b>\n` +
-    `От: ${displayName} (карта #${user.member_code})\n` +
+  return (
     `Товар: ${order.productName}\n` +
     `Цвет: ${order.color || '—'}, размер: ${order.size || '—'}\n` +
     `Сумма: ${order.price} ₽${discountLine}\n\n` +
+    `🚚 Доставка: ${deliveryLabel}\n` +
+    `ФИО получателя: ${order.recipientName}\n` +
+    `Телефон: ${order.phone}\n` +
+    `Адрес ПВЗ: ${order.pvzAddress}\n\n` +
+    `💳 Реквизиты, показанные клиенту:\n` +
+    `${order.payment.phone} — ${order.payment.name}, ${order.payment.bank}`
+  );
+}
+
+async function notifyAdmins(order, user) {
+  const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
+
+  const text =
+    `🧾 <b>Новый заказ #${order.id}</b>\n` +
+    `От: ${displayName} (карта #${user.member_code})\n\n` +
+    `${formatOrderDetails(order)}\n\n` +
     `Ожидает оплаты.`;
 
   for (const adminId of config.adminIds) {
@@ -77,3 +110,4 @@ async function notifyAdmins(order, user) {
 }
 
 module.exports = router;
+module.exports.formatOrderDetails = formatOrderDetails;

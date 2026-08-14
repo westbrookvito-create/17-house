@@ -14,6 +14,23 @@ const adminIds = (process.env.ADMIN_IDS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+const DEFAULT_PAYMENT_REQUISITES = [
+  { name: 'Олег', phone: '+7 938 312 81 80', bank: 'Альфа банк' },
+  { name: 'Виктория', phone: '+7 962 440 40 41', bank: 'Альфа банк' },
+  { name: 'Мария', phone: '+7 906 464 56 88', bank: 'Альфа банк' },
+];
+
+function parsePaymentRequisites() {
+  if (!process.env.PAYMENT_REQUISITES) return DEFAULT_PAYMENT_REQUISITES;
+  try {
+    const parsed = JSON.parse(process.env.PAYMENT_REQUISITES);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch (err) {
+    console.error('[config] Failed to parse PAYMENT_REQUISITES, using defaults:', err.message);
+  }
+  return DEFAULT_PAYMENT_REQUISITES;
+}
+
 module.exports = {
   botToken: required('BOT_TOKEN'),
   adminIds,
@@ -25,4 +42,6 @@ module.exports = {
   bonusPercent: Number(process.env.BONUS_PERCENT || 10),
   corsOrigin: (process.env.CORS_ORIGIN || '*').split(',').map((s) => s.trim()),
   dbPath: process.env.DB_PATH || require('path').join(__dirname, '..', 'data', '17house.db'),
+  paymentRequisites: parsePaymentRequisites(),
+  deliveryMethods: { yandex: 'Яндекс Доставка', cdek: 'СДЭК' },
 };

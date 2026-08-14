@@ -47,7 +47,14 @@ CREATE TABLE IF NOT EXISTS orders (
   discount_percent INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,
-  paid_at TEXT
+  paid_at TEXT,
+  delivery_method TEXT,
+  recipient_name TEXT,
+  phone TEXT,
+  pvz_address TEXT,
+  payment_name TEXT,
+  payment_phone TEXT,
+  payment_bank TEXT
 );
 
 CREATE TABLE IF NOT EXISTS counters (
@@ -55,5 +62,22 @@ CREATE TABLE IF NOT EXISTS counters (
   value INTEGER NOT NULL
 );
 `);
+
+// Идемпотентная миграция для баз, созданных до появления полей доставки/оплаты.
+const orderColumns = new Set(db.prepare(`PRAGMA table_info(orders)`).all().map((c) => c.name));
+const newOrderColumns = {
+  delivery_method: 'TEXT',
+  recipient_name: 'TEXT',
+  phone: 'TEXT',
+  pvz_address: 'TEXT',
+  payment_name: 'TEXT',
+  payment_phone: 'TEXT',
+  payment_bank: 'TEXT',
+};
+for (const [column, type] of Object.entries(newOrderColumns)) {
+  if (!orderColumns.has(column)) {
+    db.exec(`ALTER TABLE orders ADD COLUMN ${column} ${type}`);
+  }
+}
 
 module.exports = db;

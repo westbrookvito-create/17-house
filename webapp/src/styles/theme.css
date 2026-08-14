@@ -322,6 +322,25 @@ a {
   font-weight: 600;
 }
 
+.size-chip:disabled {
+  opacity: 0.5;
+}
+
+.input {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
 .member-card {
   background: linear-gradient(155deg, var(--accent-navy) 0%, var(--accent-navy-2) 100%);
   border-radius: var(--radius-lg);

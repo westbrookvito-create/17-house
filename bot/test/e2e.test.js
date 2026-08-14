@@ -32,6 +32,17 @@ const usersModel = require('../src/models/users');
 const productsModel = require('../src/models/products');
 const ordersModel = require('../src/models/orders');
 const { createServer } = require('../src/api/server');
+const config = require('../src/config');
+
+function deliveryFields(overrides = {}) {
+  return {
+    deliveryMethod: 'cdek',
+    recipientName: 'Иван Иванов',
+    phone: '+7 900 000 00 00',
+    pvzAddress: 'Москва, ул. Тестовая, д. 1, ПВЗ СДЭК',
+    ...overrides,
+  };
+}
 
 // Telegraf creates a *new* Telegram client instance per incoming update
 // (see Telegraf#handleUpdate), so patching bot.telegram alone isn't enough —
@@ -235,26 +246,73 @@ async function main() {
   const badOrder = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'XXXXL' }),
+    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'XXXXL', ...deliveryFields() }),
   });
   assert.strictEqual(badOrder.status, 400);
   console.log('  OK 400 invalid_size');
 
+  console.log('== invalid order rejected (bad delivery method) ==');
+  const badDelivery = await api('/api/orders', {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({
+      productId: product.id,
+      color: 'Navy',
+      size: 'M',
+      ...deliveryFields({ deliveryMethod: 'pigeon-post' }),
+    }),
+  });
+  assert.strictEqual(badDelivery.status, 400);
+  assert.strictEqual(badDelivery.body.error, 'invalid_delivery_method');
+  console.log('  OK 400 invalid_delivery_method');
+
+  console.log('== invalid order rejected (missing recipient details) ==');
+  const missingDetails = await api('/api/orders', {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({
+      productId: product.id,
+      color: 'Navy',
+      size: 'M',
+      ...deliveryFields({ pvzAddress: '   ' }),
+    }),
+  });
+  assert.strictEqual(missingDetails.status, 400);
+  assert.strictEqual(missingDetails.body.error, 'missing_delivery_details');
+  console.log('  OK 400 missing_delivery_details');
+
   console.log('== place 3 real orders and confirm each via admin action ==');
+  const validRequisiteKeys = config.paymentRequisites.map((r) => `${r.name}|${r.phone}|${r.bank}`);
   for (let i = 0; i < 3; i++) {
     const created = await api('/api/orders', {
       method: 'POST',
       headers: authHeaders(USER_ID),
-      body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'M' }),
+      body: JSON.stringify({
+        productId: product.id,
+        color: 'Navy',
+        size: 'M',
+        ...deliveryFields({ deliveryMethod: i % 2 === 0 ? 'cdek' : 'yandex' }),
+      }),
     });
     assert.strictEqual(created.status, 200);
     const orderId = created.body.order.id;
     assert.strictEqual(created.body.order.status, 'pending');
+    assert.strictEqual(created.body.order.recipientName, 'Иван Иванов');
+    assert.strictEqual(created.body.order.pvzAddress, 'Москва, ул. Тестовая, д. 1, ПВЗ СДЭК');
+    const { payment } = created.body.order;
+    assert.ok(
+      validRequisiteKeys.includes(`${payment.name}|${payment.phone}|${payment.bank}`),
+      'assigned payment requisite must be one of the configured 3',
+    );
 
     // eslint-disable-next-line no-await-in-loop
     await new Promise((r) => setTimeout(r, 30)); // let the fire-and-forget admin notification run
     const notifyText = lastMessageTo(ADMIN_ID);
     assert.ok(notifyText && notifyText.includes(`заказ #${orderId}`), 'admin should be notified of new order');
+    assert.ok(notifyText.includes('ФИО получателя: Иван Иванов'), 'admin notification must include recipient name');
+    assert.ok(notifyText.includes('Телефон: +7 900 000 00 00'), 'admin notification must include phone');
+    assert.ok(notifyText.includes('Адрес ПВЗ:'), 'admin notification must include pickup address');
+    assert.ok(notifyText.includes(payment.phone), 'admin notification must include the assigned payment requisite');
 
     // eslint-disable-next-line no-await-in-loop
     await sendCallback(ADMIN_ID, `confirm_order:${orderId}`);
@@ -264,7 +322,7 @@ async function main() {
     if (i === 0) assert.ok(buyerNotice.includes('первая покупка'), 'first purchase note expected');
     if (i === 2) assert.ok(buyerNotice.includes('разблокирована'), 'bonus unlock note expected on 3rd');
   }
-  console.log('  OK 3 orders placed + confirmed, notifications correct');
+  console.log('  OK 3 orders placed + confirmed, notifications include delivery + payment info');
 
   console.log('== club-card hasPurchased flips true after first purchase ==');
   cc = await api('/api/profile/club-card', { headers: authHeaders(USER_ID) });
@@ -279,7 +337,7 @@ async function main() {
   const discounted = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Beige', size: 'L' }),
+    body: JSON.stringify({ productId: product.id, color: 'Beige', size: 'L', ...deliveryFields() }),
   });
   assert.strictEqual(discounted.body.order.discountPercent, 10);
   assert.strictEqual(discounted.body.order.basePrice, 2990);
@@ -290,7 +348,7 @@ async function main() {
   const toCancel = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER2_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'S' }),
+    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'S', ...deliveryFields() }),
   });
   const cancelId = toCancel.body.order.id;
   await new Promise((r) => setTimeout(r, 30));
