@@ -21,7 +21,7 @@ export default function Shirts() {
 
   return (
     <div className="screen">
-      <Header title="Футболки" showBack />
+      <Header title="Каталог" />
       <p className="muted" style={{ marginTop: -8 }}>
         Два цвета. Один вайб.
       </p>

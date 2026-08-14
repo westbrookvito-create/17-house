@@ -2,21 +2,21 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import BottleMark from '../components/BottleMark';
 
-export default function Home({ onMenu }) {
+export default function Home() {
   const navigate = useNavigate();
 
   return (
     <div className="screen">
-      <Header title="17 House" onMenu={onMenu} showLogo />
+      <Header title="17 House" showLogo />
 
-      <div className="hero">
-        <div style={{ position: 'relative', zIndex: 1, opacity: 0.85, margin: '0 auto' }}>
-          <BottleMark size={40} />
+      <div className="hero hero-lg">
+        <div style={{ position: 'relative', zIndex: 1, opacity: 0.9 }}>
+          <BottleMark size={48} />
         </div>
       </div>
 
       <div className="card" style={{ gap: 14, display: 'flex', flexDirection: 'column' }}>
-        <h2 className="serif" style={{ fontSize: 22 }}>
+        <h2 className="serif" style={{ fontSize: 23 }}>
           Добро пожаловать в 17 House
         </h2>
         <p className="muted">

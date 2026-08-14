@@ -19,14 +19,14 @@ export default function Bonus() {
 
   return (
     <div className="screen">
-      <Header title="Бонусы" showBack />
+      <Header title="Бонусы" />
 
       {error && <div className="center-state">{error}</div>}
       {!error && !bonus && <div className="center-state">Загрузка…</div>}
 
       {bonus && (
         <>
-          <div className="hero" style={{ minHeight: 140 }} />
+          <div className="hero" style={{ minHeight: 160 }} />
 
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <h2 className="serif" style={{ fontSize: 20 }}>

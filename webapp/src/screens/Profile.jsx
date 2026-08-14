@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import BottleMark from '../components/BottleMark';
 import { api } from '../api';
@@ -15,6 +16,7 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
   const toast = useToast();
+  const navigate = useNavigate();
   const tgUser = getTelegramUser();
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function Profile() {
 
   return (
     <div className="screen">
-      <Header title="Профиль" showBack />
+      <Header title="Профиль" />
 
       {error && <div className="center-state">{error}</div>}
       {!error && !user && <div className="center-state">Загрузка…</div>}
@@ -80,6 +82,11 @@ export default function Profile() {
               <div>{formatDate(user.statusUntil)}</div>
             </div>
           </div>
+
+          <button className="list-item" style={{ width: '100%' }} onClick={() => navigate('/card')}>
+            <span>🪪 Визитка клуба</span>
+            <span className="muted">›</span>
+          </button>
 
           <button className="list-item" style={{ width: '100%' }} onClick={() => toast('Настройки скоро появятся')}>
             <span>⚙️ Настройки</span>

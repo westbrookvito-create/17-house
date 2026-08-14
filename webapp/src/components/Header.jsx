@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import BottleMark from './BottleMark';
 
-export default function Header({ title, onMenu, showBack, showLogo }) {
+export default function Header({ title, showBack, showLogo }) {
   const navigate = useNavigate();
 
   return (
@@ -11,18 +11,12 @@ export default function Header({ title, onMenu, showBack, showLogo }) {
           ‹
         </button>
       ) : showLogo ? (
-        <BottleMark size={22} color="var(--text)" />
-      ) : (
-        <div style={{ width: 22 }} />
-      )}
-      <h1 className="topbar-title serif">{title}</h1>
-      {onMenu ? (
-        <button className="icon-btn" onClick={onMenu} aria-label="Меню">
-          ☰
-        </button>
+        <BottleMark size={24} color="var(--text)" />
       ) : (
         <div style={{ width: 36 }} />
       )}
+      <h1 className="topbar-title serif">{title}</h1>
+      <div style={{ width: 36 }} />
     </div>
   );
 }
