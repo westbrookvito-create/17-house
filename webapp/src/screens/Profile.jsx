@@ -104,6 +104,10 @@ export default function Profile() {
             </span>
             <span className="muted">›</span>
           </button>
+
+          <div className="muted" style={{ textAlign: 'center', fontSize: 11.5, opacity: 0.5, marginTop: 4 }}>
+            Разработка by @cherokky
+          </div>
         </>
       )}
     </div>

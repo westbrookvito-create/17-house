@@ -81,27 +81,45 @@ async function sendCallback(fromId, data) {
 }
 
 async function main() {
-  console.log('== /start sends the hero photo with the welcome caption when WEBAPP_URL is set ==');
+  console.log('== first /start asks for privacy consent before anything else ==');
   await sendStart(111);
+  const consentCall = calls.find((c) => c.method === 'sendMessage');
+  assert.ok(consentCall, 'expected a consent sendMessage call');
+  assert.ok(consentCall.payload.text.includes('обработку персональных данных'));
+  const consentButtons = consentCall.payload.reply_markup.inline_keyboard.flat();
+  assert.ok(consentButtons.some((b) => b.callback_data === 'privacy:accept'));
+  assert.ok(!calls.some((c) => c.method === 'sendPhoto'), 'no hero photo before consent is accepted');
+  console.log('  OK consent message shown first, no welcome photo yet');
+
+  console.log('== accepting consent immediately sends the hero photo with the welcome caption ==');
+  calls.length = 0;
+  await sendCallback(111, 'privacy:accept');
   const photoCall = calls.find((c) => c.method === 'sendPhoto');
   assert.ok(photoCall, 'expected a sendPhoto call');
   assert.strictEqual(photoCall.payload.photo, 'https://example-club.netlify.app/hero.jpg');
   assert.ok(photoCall.payload.caption.includes('Добро пожаловать'));
   assert.ok(photoCall.payload.reply_markup, 'the Open App button must still be attached');
-  assert.ok(!calls.some((c) => c.method === 'sendMessage'), 'should not also send a plain text message');
-  console.log('  OK hero photo sent with caption + keyboard');
+  console.log('  OK hero photo sent with caption + keyboard right after accepting');
+
+  console.log('== returning (already consented) user gets the welcome directly on /start ==');
+  calls.length = 0;
+  await sendStart(111);
+  const secondPhotoCall = calls.find((c) => c.method === 'sendPhoto');
+  assert.ok(secondPhotoCall, 'consent should not be asked again for a returning user');
+  assert.ok(!calls.some((c) => c.method === 'sendMessage' && c.payload.text.includes('обработку персональных')));
+  console.log('  OK no repeat consent prompt for a returning user');
 
   console.log('== falls back to a text-only message if sending the photo fails ==');
   failSendPhoto = true;
   calls.length = 0;
   await sendStart(222);
+  await sendCallback(222, 'privacy:accept');
   assert.ok(calls.some((c) => c.method === 'sendPhoto'), 'should still have attempted the photo');
-  const textCall = calls.find((c) => c.method === 'sendMessage');
+  const textCall = calls.find((c) => c.method === 'sendMessage' && c.payload.text.includes('Добро пожаловать'));
   assert.ok(textCall, 'expected a fallback sendMessage after the photo failed');
-  assert.ok(textCall.payload.text.includes('Добро пожаловать'));
   console.log('  OK falls back to text when the photo send throws');
 
-  console.log('== /start attaches an "Узнать размер" button ==');
+  console.log('== welcome message attaches an "Узнать размер" button ==');
   const startPhotoCall = calls.find((c) => c.method === 'sendPhoto');
   const buttons = startPhotoCall.payload.reply_markup.inline_keyboard.flat();
   assert.ok(

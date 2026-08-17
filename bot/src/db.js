@@ -84,4 +84,11 @@ for (const [column, type] of Object.entries(newOrderColumns)) {
   }
 }
 
+// Идемпотентная миграция для баз, созданных до появления согласия на
+// обработку данных.
+const userColumns = new Set(db.prepare(`PRAGMA table_info(users)`).all().map((c) => c.name));
+if (!userColumns.has('privacy_accepted')) {
+  db.exec(`ALTER TABLE users ADD COLUMN privacy_accepted INTEGER NOT NULL DEFAULT 0`);
+}
+
 module.exports = db;

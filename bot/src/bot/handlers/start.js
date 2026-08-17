@@ -1,11 +1,24 @@
+const { Markup } = require('telegraf');
 const users = require('../../models/users');
 const config = require('../../config');
 const { openAppKeyboard } = require('../keyboards');
 
-function register(bot) {
-  bot.start(async (ctx) => {
-    const user = users.getOrCreate(ctx.from);
+function privacyKeyboard() {
+  return Markup.inlineKeyboard([Markup.button.callback('✅ Согласен, продолжить', 'privacy:accept')]);
+}
 
+function register(bot) {
+  const privacyText =
+    `🔒 <b>Прежде чем продолжить</b>\n\n` +
+    `Используя этого бота, вы соглашаетесь на обработку персональных данных: Telegram ID, username, имя, ` +
+    `а также данные, которые вы укажете при оформлении заказа (ФИО, телефон, адрес доставки). ` +
+    `Эта информация используется исключительно для обработки заказов и работы клуба ${config.clubName}, ` +
+    `и не передаётся третьим лицам, кроме случаев, необходимых для доставки заказа.\n\n` +
+    `Нажимая «Согласен», вы подтверждаете, что ознакомлены и принимаете условия обработки данных.`;
+
+  // Приветствие с фото/кнопкой — общая логика для /start и для момента,
+  // когда пользователь только что принял согласие на обработку данных.
+  async function sendWelcome(ctx, user) {
     const text =
       `<b>Добро пожаловать в ${config.clubName}</b>\n\n` +
       `Закрытый клуб по интересам. Привилегии в ресторанах. Мерч. Жизнь в стиле.\n\n` +
@@ -14,19 +27,40 @@ function register(bot) {
 
     // Фото берётся прямо с задеплоенного мини-аппа (webapp/public/hero.jpg),
     // а не хранится отдельной копией в боте — так они не могут разъехаться.
-    if (config.webappUrl) {
-      try {
-        return await ctx.replyWithPhoto(`${config.webappUrl}/hero.jpg`, {
-          caption: text,
-          parse_mode: 'HTML',
-          ...openAppKeyboard(),
-        });
-      } catch (err) {
-        console.error('[start] failed to send hero photo, falling back to text-only', err.message);
-      }
+    if (!config.webappUrl) {
+      console.warn('[start] WEBAPP_URL is not set — sending welcome without hero photo/app button');
+      return ctx.replyWithHTML(text, openAppKeyboard());
     }
 
-    return ctx.replyWithHTML(text, openAppKeyboard());
+    try {
+      return await ctx.replyWithPhoto(`${config.webappUrl}/hero.jpg`, {
+        caption: text,
+        parse_mode: 'HTML',
+        ...openAppKeyboard(),
+      });
+    } catch (err) {
+      console.error(
+        `[start] failed to send hero photo from ${config.webappUrl}/hero.jpg, falling back to text-only:`,
+        err.message,
+      );
+      return ctx.replyWithHTML(text, openAppKeyboard());
+    }
+  }
+
+  bot.start(async (ctx) => {
+    const user = users.getOrCreate(ctx.from);
+    if (!user.privacy_accepted) {
+      return ctx.replyWithHTML(privacyText, privacyKeyboard());
+    }
+    return sendWelcome(ctx, user);
+  });
+
+  bot.action('privacy:accept', async (ctx) => {
+    const user = users.getOrCreate(ctx.from);
+    const updated = users.acceptPrivacy(user.id);
+    await ctx.answerCbQuery('Спасибо!');
+    await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+    return sendWelcome(ctx, updated);
   });
 
   // Таблица размеров — те же 2 картинки, что и hero.jpg, отдаются прямо

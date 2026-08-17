@@ -53,6 +53,11 @@ function isAdmin(telegramId) {
   return config.adminIds.includes(String(telegramId));
 }
 
+function acceptPrivacy(userId) {
+  db.prepare(`UPDATE users SET privacy_accepted = 1 WHERE id = ?`).run(userId);
+  return getById(userId);
+}
+
 function registerShirtPurchase(userId) {
   const user = getById(userId);
   const shirtsPurchased = user.shirts_purchased + 1;
@@ -70,5 +75,6 @@ module.exports = {
   getOrCreate,
   getById,
   isAdmin,
+  acceptPrivacy,
   registerShirtPurchase,
 };
