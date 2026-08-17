@@ -316,6 +316,10 @@ function register(bot) {
     if (!session || session.step !== 'confirm') return ctx.answerCbQuery();
     const product = productsModel.create(session.data);
     sessions.delete(ctx.from.id);
+    // Сразу убираем кнопки с превью, чтобы повторный тап по "Опубликовать"
+    // не выглядел рабочим — на всякий случай, основная защита от дублей на
+    // уровне БД (products.create игнорирует повторы по имени за 10 секунд).
+    await ctx.editMessageReplyMarkup(undefined).catch(() => {});
     await ctx.answerCbQuery('Опубликовано');
     return ctx.replyWithHTML(`✅ Товар «${product.name}» опубликован в каталоге.`);
   });

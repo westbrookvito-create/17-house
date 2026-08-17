@@ -195,6 +195,19 @@ async function main() {
     product.colors.map((c) => c.name),
   );
 
+  console.log('== creating a product twice with the same name within 10s does not duplicate it ==');
+  const beforeCount = productsModel.listAll().length;
+  const dupeAttempt = productsModel.create({
+    name: 'House Every Weekend Tee',
+    description: 'Плотный хлопок, вышитая эмблема.',
+    price: 3200,
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: product.colors,
+  });
+  assert.strictEqual(productsModel.listAll().length, beforeCount, 'no new row should be inserted');
+  assert.strictEqual(dupeAttempt.id, product.id, 'duplicate create() should return the existing product');
+  console.log('  OK duplicate create() within the guard window is a no-op');
+
   console.log('== admin edits price ==');
   await sendCallback(ADMIN_ID, `product:edit_price:${product.id}`);
   await sendText(ADMIN_ID, '2990');

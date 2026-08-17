@@ -29,7 +29,18 @@ function getById(id) {
   return rowToProduct(db.prepare(`SELECT * FROM products WHERE id = ?`).get(id));
 }
 
+// Защита от дублей: если товар с таким же названием уже создавался в
+// последние 10 секунд (двойное нажатие "Опубликовать" в боте, гонка между
+// параллельно работающими экземплярами бота и т.п.), возвращаем уже
+// существующую запись вместо создания второй копии.
+const DUPLICATE_GUARD_WINDOW_MS = 10000;
+
 function create({ name, description, price, sizes, colors }) {
+  const recentDuplicate = db
+    .prepare(`SELECT * FROM products WHERE name = ? AND created_at > ? ORDER BY id DESC LIMIT 1`)
+    .get(name, new Date(Date.now() - DUPLICATE_GUARD_WINDOW_MS).toISOString());
+  if (recentDuplicate) return rowToProduct(recentDuplicate);
+
   const info = db
     .prepare(
       `INSERT INTO products (name, description, price, sizes, colors, active, created_at)
