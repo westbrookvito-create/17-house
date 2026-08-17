@@ -100,33 +100,46 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <h3 className="serif" style={{ fontSize: 18, margin: 0, padding: '0 2px' }}>
+        {product.name}
+      </h3>
+
       {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
 
-      {product.colors.map((c) => {
-        const thumb = c.imageUrls?.[0] || c.imageUrl;
-        return (
-          <button
-            key={c.name}
-            className="color-plate"
-            onClick={() => {
-              if (stage !== 'select') return;
-              setColor(c.name);
-              hapticSelect();
-            }}
-          >
-            <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
-              {thumb ? (
-                <img src={buildImageUrl(thumb)} alt={c.name} />
-              ) : (
-                <span className="serif" style={{ opacity: 0.55, fontSize: 15 }}>
-                  {product.name}
-                </span>
-              )}
-            </div>
-            <span className="color-plate-label serif">{c.name}</span>
-          </button>
-        );
-      })}
+      {product.colors.length > 0 && (
+        <>
+          <span className="muted" style={{ fontSize: 12.5, padding: '0 2px', marginTop: -6 }}>
+            Цвет
+          </span>
+          <div className="color-row">
+            {product.colors.map((c) => {
+              const thumb = c.imageUrls?.[0] || c.imageUrl;
+              return (
+                <button
+                  key={c.name}
+                  className="color-plate"
+                  onClick={() => {
+                    if (stage !== 'select') return;
+                    setColor(c.name);
+                    hapticSelect();
+                  }}
+                >
+                  <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
+                    {thumb ? (
+                      <img src={buildImageUrl(thumb)} alt={c.name} />
+                    ) : (
+                      <span className="serif" style={{ opacity: 0.55, fontSize: 10 }}>
+                        {c.name}
+                      </span>
+                    )}
+                  </div>
+                  <span className="color-plate-label serif">{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {product.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>
