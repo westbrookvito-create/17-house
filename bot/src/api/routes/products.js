@@ -23,21 +23,10 @@ router.get('/image/:fileId', async (req, res) => {
   }
 });
 
-// Старые товары хранили один file_id на цвет (`fileId`), новые — массив
-// (`fileIds`), так что оба варианта приводим к одному списку ссылок.
-function colorImageUrls(c) {
-  const fileIds = c.fileIds || (c.fileId ? [c.fileId] : []);
-  if (fileIds.length) return fileIds.map((id) => `/api/products/image/${id}`);
-  return c.imageUrl ? [c.imageUrl] : [];
-}
-
 router.get('/', requireTelegramAuth, (req, res) => {
   const list = products.listActive().map((p) => ({
     ...p,
-    colors: p.colors.map((c) => {
-      const imageUrls = colorImageUrls(c);
-      return { ...c, imageUrls, imageUrl: imageUrls[0] || null };
-    }),
+    imageUrls: p.photos.map((fileId) => `/api/products/image/${fileId}`),
   }));
   res.json({ products: list, bonusThreshold: config.bonusThreshold, bonusPercent: config.bonusPercent });
 });

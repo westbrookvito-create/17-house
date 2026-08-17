@@ -14,36 +14,28 @@ function isAdminCtx(ctx) {
   return usersModel.isAdmin(ctx.from.id);
 }
 
-// Старые товары хранили один file_id на цвет (`fileId`), новые — массив
-// (`fileIds`), поэтому везде, где мы читаем фото цвета, приводим к массиву так.
-function colorFileIds(c) {
-  return c.fileIds || (c.fileId ? [c.fileId] : []);
-}
-
 const PHOTO_SIZE_HINT =
   '📐 Рекомендуемый размер фото: квадратное или 4:5, от 1200×1200 px (JPEG/PNG, до 5 МБ). ' +
-  'Можно прислать несколько фото подряд для одного цвета — когда фото достаточно, напишите название цвета текстом.';
+  'Можно прислать несколько фото подряд — когда закончите, отправьте /done.';
 
 function renderProductText(p) {
-  const colorsLine = p.colors.map((c) => `${c.name} (${colorFileIds(c).length} фото)`).join(', ') || '—';
   return (
     `<b>${p.name}</b>${p.active ? '' : ' (скрыт)'}\n` +
     `${p.description || ''}\n\n` +
     `Цена: ${p.price} ₽\n` +
     `Размеры: ${p.sizes.join(', ') || '—'}\n` +
-    `Цвета: ${colorsLine}`
+    `Фото: ${p.photos.length} шт.`
   );
 }
 
 function renderDraftPreview(data) {
-  const colorsLine = data.colors.map((c) => `${c.name} (${colorFileIds(c).length} фото)`).join(', ') || '—';
   return (
     `<b>Предпросмотр нового товара</b>\n\n` +
     `<b>${data.name}</b>\n` +
     `${data.description || ''}\n\n` +
     `Цена: ${data.price} ₽\n` +
     `Размеры: ${data.sizes.join(', ') || '—'}\n` +
-    `Цвета: ${colorsLine}`
+    `Фото: ${data.photos.length} шт.`
   );
 }
 
@@ -106,7 +98,7 @@ function productEditKeyboard(p) {
       Markup.button.callback('✏️ Описание', `product:edit_description:${p.id}`),
       Markup.button.callback('✏️ Размеры', `product:edit_sizes:${p.id}`),
     ],
-    [Markup.button.callback('🖼 Цвета / фото', `product:edit_colors:${p.id}`)],
+    [Markup.button.callback('🖼 Фото', `product:edit_photos:${p.id}`)],
     [Markup.button.callback(p.active ? '🚫 Скрыть' : '✅ Показать', `product:toggle:${p.id}`)],
     [Markup.button.callback('🗑 Удалить', `product:delete_confirm:${p.id}`)],
     [Markup.button.callback('⬅️ К списку товаров', 'admin:list_products')],
@@ -155,18 +147,15 @@ function register(bot) {
     const session = sessions.get(ctx.from.id);
     if (!session) return;
 
-    if (session.step !== 'color_photo') return;
-    if (session.pendingFileIds && session.pendingFileIds.length) {
-      return ctx.reply('Сначала укажите название текущего цвета (фото уже получены) или пришлите ещё фото.');
-    }
-    if (!session.data.colors.length) {
-      return ctx.reply('Добавьте хотя бы один цвет перед завершением.');
+    if (session.step !== 'photos') return;
+    if (!session.data.photos.length) {
+      return ctx.reply('Добавьте хотя бы одно фото перед завершением.');
     }
 
     if (session.editingExisting) {
-      const product = productsModel.updateField(session.productId, 'colors', session.data.colors);
+      const product = productsModel.updateField(session.productId, 'photos', session.data.photos);
       sessions.delete(ctx.from.id);
-      return ctx.replyWithHTML(`Цвета товара «${product.name}» обновлены.`, {
+      return ctx.replyWithHTML(`Фото товара «${product.name}» обновлены.`, {
         reply_markup: productEditKeyboard(product),
       });
     }
@@ -185,9 +174,12 @@ function register(bot) {
 
   bot.action('admin:add_product', (ctx) => {
     if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
-    sessions.set(ctx.from.id, { step: 'name', data: { colors: [] } });
+    sessions.set(ctx.from.id, { step: 'name', data: { photos: [] } });
     ctx.answerCbQuery();
-    return ctx.reply('Введите название товара (например: House Every Weekend Tee):');
+    return ctx.reply(
+      'Введите название товара. У каждого цвета/варианта — свой отдельный товар в каталоге ' +
+        '(например: House Every Weekend Tee — Navy):',
+    );
   });
 
   bot.action('admin:list_products', async (ctx) => {
@@ -259,20 +251,18 @@ function register(bot) {
     });
   }
 
-  bot.action(/^product:edit_colors:(\d+)$/, (ctx) => {
+  bot.action(/^product:edit_photos:(\d+)$/, (ctx) => {
     if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
     const productId = Number(ctx.match[1]);
     sessions.set(ctx.from.id, {
-      step: 'color_photo',
+      step: 'photos',
       productId,
       editingExisting: true,
-      data: { colors: [] },
-      pendingFileIds: [],
+      data: { photos: [] },
     });
     ctx.answerCbQuery();
     return ctx.reply(
-      'Пришлите одно или несколько фото для первого цвета — это полностью заменит текущие цвета товара. ' +
-        'Когда фото для цвета достаточно, напишите его название текстом. Когда закончите со всеми цветами — отправьте /done.\n\n' +
+      'Пришлите одно или несколько фото — это полностью заменит текущие фото товара. Когда закончите — отправьте /done.\n\n' +
         PHOTO_SIZE_HINT,
     );
   });
@@ -428,16 +418,13 @@ function register(bot) {
   bot.on('photo', async (ctx, next) => {
     if (!isAdminCtx(ctx)) return next();
     const session = sessions.get(ctx.from.id);
-    if (!session || session.step !== 'color_photo') return next();
+    if (!session || session.step !== 'photos') return next();
 
     const photos = ctx.message.photo;
     const fileId = photos[photos.length - 1].file_id;
-    session.pendingFileIds = session.pendingFileIds || [];
-    session.pendingFileIds.push(fileId);
+    session.data.photos.push(fileId);
     sessions.set(ctx.from.id, session);
-    return ctx.reply(
-      `Фото добавлено (${session.pendingFileIds.length}). Пришлите ещё для этого цвета или напишите его название текстом, чтобы продолжить.`,
-    );
+    return ctx.reply(`Фото добавлено (${session.data.photos.length}). Пришлите ещё или отправьте /done, чтобы закончить.`);
   });
 
   bot.on('text', async (ctx, next) => {
@@ -475,23 +462,9 @@ function register(bot) {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean);
-        session.step = 'color_photo';
-        session.pendingFileIds = [];
+        session.step = 'photos';
         sessions.set(ctx.from.id, session);
-        return ctx.reply(`Пришлите одно или несколько фото для первого цвета товара.\n\n${PHOTO_SIZE_HINT}`);
-
-      case 'color_photo': {
-        const pending = session.pendingFileIds || [];
-        if (!pending.length) {
-          return ctx.reply('Сначала пришлите хотя бы одно фото для этого цвета.');
-        }
-        session.data.colors.push({ name: text, fileIds: [...pending] });
-        session.pendingFileIds = [];
-        sessions.set(ctx.from.id, session);
-        return ctx.reply(
-          `Цвет «${text}» добавлен (${pending.length} фото). Пришлите фото следующего цвета или отправьте /done, чтобы закончить.`,
-        );
-      }
+        return ctx.reply(`Пришлите одно или несколько фото товара.\n\n${PHOTO_SIZE_HINT}`);
 
       case 'edit_field': {
         const ok = await applyFieldEdit(ctx, session, text);

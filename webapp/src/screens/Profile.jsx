@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Logo from '../components/Logo';
 import IconGear from '../components/icons/Gear';
 import IconMessage from '../components/icons/Message';
+import IconCard from '../components/icons/Card';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { getTelegramUser } from '../telegram';
@@ -18,6 +20,7 @@ export default function Profile() {
   const [error, setError] = useState('');
   const toast = useToast();
   const tgUser = getTelegramUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     api
@@ -88,6 +91,14 @@ export default function Profile() {
               <div style={{ color: 'var(--text)' }}>{formatDate(user.statusUntil)}</div>
             </div>
           </div>
+
+          <button className="list-item" style={{ width: '100%' }} onClick={() => navigate('/card')}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <IconCard size={22} color="var(--text)" />
+              Визитка клуба
+            </span>
+            <span className="muted">›</span>
+          </button>
 
           <button className="list-item" style={{ width: '100%' }} onClick={() => toast('Настройки скоро появятся')}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

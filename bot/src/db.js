@@ -91,4 +91,26 @@ if (!userColumns.has('privacy_accepted')) {
   db.exec(`ALTER TABLE users ADD COLUMN privacy_accepted INTEGER NOT NULL DEFAULT 0`);
 }
 
+// Идемпотентная миграция: цвета больше не существуют как отдельная сущность
+// внутри товара (каждый цвет — теперь отдельный товар), товар просто хранит
+// плоский список фото. Для баз, созданных раньше, переносим уже загруженные
+// фото из старой структуры colors в новую колонку photos, чтобы не потерять
+// то, что админ уже успел загрузить.
+const productColumns = new Set(db.prepare(`PRAGMA table_info(products)`).all().map((c) => c.name));
+if (!productColumns.has('photos')) {
+  db.exec(`ALTER TABLE products ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'`);
+  const rows = db.prepare(`SELECT id, colors FROM products`).all();
+  const backfill = db.prepare(`UPDATE products SET photos = ? WHERE id = ?`);
+  for (const row of rows) {
+    let colors = [];
+    try {
+      colors = JSON.parse(row.colors || '[]');
+    } catch {
+      colors = [];
+    }
+    const photos = colors.flatMap((c) => c.fileIds || (c.fileId ? [c.fileId] : []));
+    if (photos.length) backfill.run(JSON.stringify(photos), row.id);
+  }
+}
+
 module.exports = db;

@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { productId, color, size, deliveryMethod, recipientName, phone, pvzAddress } = req.body || {};
+  const { productId, size, deliveryMethod, recipientName, phone, pvzAddress } = req.body || {};
   const product = productsModel.getById(Number(productId));
 
   if (!product || !product.active) {
@@ -28,9 +28,6 @@ router.post('/', async (req, res) => {
   }
   if (product.sizes.length && !product.sizes.includes(size)) {
     return res.status(400).json({ error: 'invalid_size' });
-  }
-  if (product.colors.length && !product.colors.some((c) => c.name === color)) {
-    return res.status(400).json({ error: 'invalid_color' });
   }
   if (!DELIVERY_METHODS.includes(deliveryMethod)) {
     return res.status(400).json({ error: 'invalid_delivery_method' });
@@ -49,7 +46,6 @@ router.post('/', async (req, res) => {
     userId: user.id,
     productId: product.id,
     productName: product.name,
-    color: color || null,
     size: size || null,
     basePrice,
     price,
@@ -74,7 +70,7 @@ function formatOrderDetails(order) {
 
   return (
     `Товар: ${order.productName}\n` +
-    `Цвет: ${order.color || '—'}, размер: ${order.size || '—'}\n` +
+    `Размер: ${order.size || '—'}\n` +
     `Сумма: ${order.price} ₽${discountLine}\n\n` +
     `🚚 Доставка: ${deliveryLabel}\n` +
     `ФИО получателя: ${order.recipientName}\n` +

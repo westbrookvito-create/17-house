@@ -28,7 +28,7 @@ export default function Shirts() {
     <div className="screen">
       <Header title="Каталог" />
       <p className="muted" style={{ marginTop: -8 }}>
-        Два цвета. Один вайб.
+        Мерч клуба. Один вайб.
       </p>
 
       {error && <div className="center-state">{error}</div>}
@@ -45,7 +45,6 @@ export default function Shirts() {
 }
 
 function ProductBlock({ product, bonusUnlocked, toast }) {
-  const [color, setColor] = useState(product.colors[0]?.name || null);
   const [size, setSize] = useState(null);
   const [stage, setStage] = useState('select'); // select -> form -> payment
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +65,6 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     try {
       const res = await api.createOrder({
         productId: product.id,
-        color,
         size,
         deliveryMethod: form.deliveryMethod,
         recipientName: form.recipientName.trim(),
@@ -91,12 +89,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     toast('Номер скопирован');
   }
 
-  const selectedColorObj = product.colors.find((c) => c.name === color) || product.colors[0];
-  const galleryImages = selectedColorObj?.imageUrls?.length
-    ? selectedColorObj.imageUrls
-    : selectedColorObj?.imageUrl
-      ? [selectedColorObj.imageUrl]
-      : [];
+  const galleryImages = product.imageUrls || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -105,41 +98,6 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
       </h3>
 
       {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
-
-      {product.colors.length > 0 && (
-        <>
-          <span className="muted" style={{ fontSize: 12.5, padding: '0 2px', marginTop: -6 }}>
-            Цвет
-          </span>
-          <div className="color-row">
-            {product.colors.map((c) => {
-              const thumb = c.imageUrls?.[0] || c.imageUrl;
-              return (
-                <button
-                  key={c.name}
-                  className="color-plate"
-                  onClick={() => {
-                    if (stage !== 'select') return;
-                    setColor(c.name);
-                    hapticSelect();
-                  }}
-                >
-                  <div className={`color-plate-image${c.name === color ? ' selected' : ''}`}>
-                    {thumb ? (
-                      <img src={buildImageUrl(thumb)} alt={c.name} />
-                    ) : (
-                      <span className="serif" style={{ opacity: 0.55, fontSize: 10 }}>
-                        {c.name}
-                      </span>
-                    )}
-                  </div>
-                  <span className="color-plate-label serif">{c.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
 
       {product.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>

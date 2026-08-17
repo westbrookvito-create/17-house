@@ -162,17 +162,14 @@ async function main() {
   assert.ok(lastMessageTo(ADMIN_ID).includes('Админ-панель'));
   console.log('  OK');
 
-  console.log('== admin adds a product with 2 colors ==');
+  console.log('== admin adds a product with several photos (one color = one product) ==');
   await sendCallback(ADMIN_ID, 'admin:add_product');
-  await sendText(ADMIN_ID, 'House Every Weekend Tee');
+  await sendText(ADMIN_ID, 'House Every Weekend Tee — Navy');
   await sendText(ADMIN_ID, 'Плотный хлопок, вышитая эмблема.');
   await sendText(ADMIN_ID, '3200');
   await sendText(ADMIN_ID, 'S, M, L, XL');
   await sendPhoto(ADMIN_ID, 'fileNavy1');
   await sendPhoto(ADMIN_ID, 'fileNavy2');
-  await sendText(ADMIN_ID, 'Navy');
-  await sendPhoto(ADMIN_ID, 'fileBeige');
-  await sendText(ADMIN_ID, 'Beige');
   await sendText(ADMIN_ID, '/done');
   assert.ok(lastMessageTo(ADMIN_ID).includes('Предпросмотр'), 'should show preview before publish');
   await sendCallback(ADMIN_ID, 'addproduct:publish');
@@ -181,28 +178,20 @@ async function main() {
   const products = productsModel.listActive();
   assert.strictEqual(products.length, 1);
   const product = products[0];
-  assert.strictEqual(product.name, 'House Every Weekend Tee');
+  assert.strictEqual(product.name, 'House Every Weekend Tee — Navy');
   assert.strictEqual(product.price, 3200);
   assert.deepStrictEqual(product.sizes, ['S', 'M', 'L', 'XL']);
-  assert.strictEqual(product.colors.length, 2);
-  assert.strictEqual(product.colors[0].name, 'Navy');
-  assert.deepStrictEqual(product.colors[0].fileIds, ['fileNavy1_large', 'fileNavy2_large']);
-  assert.strictEqual(product.colors[1].fileIds.length, 1, 'Beige has a single photo');
-  console.log(
-    '  OK product created:',
-    product.id,
-    product.name,
-    product.colors.map((c) => c.name),
-  );
+  assert.deepStrictEqual(product.photos, ['fileNavy1_large', 'fileNavy2_large']);
+  console.log('  OK product created:', product.id, product.name, `${product.photos.length} photos`);
 
   console.log('== creating a product twice with the same name within 10s does not duplicate it ==');
   const beforeCount = productsModel.listAll().length;
   const dupeAttempt = productsModel.create({
-    name: 'House Every Weekend Tee',
+    name: 'House Every Weekend Tee — Navy',
     description: 'Плотный хлопок, вышитая эмблема.',
     price: 3200,
     sizes: ['S', 'M', 'L', 'XL'],
-    colors: product.colors,
+    photos: product.photos,
   });
   assert.strictEqual(productsModel.listAll().length, beforeCount, 'no new row should be inserted');
   assert.strictEqual(dupeAttempt.id, product.id, 'duplicate create() should return the existing product');
@@ -230,7 +219,6 @@ async function main() {
   await sendText(ADMIN_ID, '100');
   await sendText(ADMIN_ID, 'M');
   await sendPhoto(ADMIN_ID, 'fileTemp');
-  await sendText(ADMIN_ID, 'Black');
   await sendText(ADMIN_ID, '/done');
   await sendCallback(ADMIN_ID, 'addproduct:publish');
   const temp = productsModel.listAll().find((p) => p.name === 'Temp Product');
@@ -275,7 +263,7 @@ async function main() {
   const badOrder = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'XXXXL', ...deliveryFields() }),
+    body: JSON.stringify({ productId: product.id, size: 'XXXXL', ...deliveryFields() }),
   });
   assert.strictEqual(badOrder.status, 400);
   console.log('  OK 400 invalid_size');
@@ -286,7 +274,6 @@ async function main() {
     headers: authHeaders(USER_ID),
     body: JSON.stringify({
       productId: product.id,
-      color: 'Navy',
       size: 'M',
       ...deliveryFields({ deliveryMethod: 'pigeon-post' }),
     }),
@@ -301,7 +288,6 @@ async function main() {
     headers: authHeaders(USER_ID),
     body: JSON.stringify({
       productId: product.id,
-      color: 'Navy',
       size: 'M',
       ...deliveryFields({ pvzAddress: '   ' }),
     }),
@@ -319,7 +305,6 @@ async function main() {
       headers: authHeaders(USER_ID),
       body: JSON.stringify({
         productId: product.id,
-        color: 'Navy',
         size: 'M',
         ...deliveryFields({ deliveryMethod: i % 2 === 0 ? 'cdek' : 'yandex' }),
       }),
@@ -400,7 +385,7 @@ async function main() {
   const discounted = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Beige', size: 'L', ...deliveryFields() }),
+    body: JSON.stringify({ productId: product.id, size: 'L', ...deliveryFields() }),
   });
   assert.strictEqual(discounted.body.order.discountPercent, 10);
   assert.strictEqual(discounted.body.order.basePrice, 2990);
@@ -411,7 +396,7 @@ async function main() {
   const toCancel = await api('/api/orders', {
     method: 'POST',
     headers: authHeaders(USER2_ID),
-    body: JSON.stringify({ productId: product.id, color: 'Navy', size: 'S', ...deliveryFields() }),
+    body: JSON.stringify({ productId: product.id, size: 'S', ...deliveryFields() }),
   });
   const cancelId = toCancel.body.order.id;
   await new Promise((r) => setTimeout(r, 30));
@@ -481,16 +466,12 @@ async function main() {
   assert.strictEqual(catalogShown.body.products.length, 1);
   console.log('  OK hide/show reflected in public catalog');
 
-  console.log('== catalog exposes multiple photo URLs per color ==');
-  const navyColor = catalogShown.body.products[0].colors.find((c) => c.name === 'Navy');
-  assert.deepStrictEqual(navyColor.imageUrls, [
+  console.log('== catalog exposes multiple photo URLs directly on the product ==');
+  assert.deepStrictEqual(catalogShown.body.products[0].imageUrls, [
     '/api/products/image/fileNavy1_large',
     '/api/products/image/fileNavy2_large',
   ]);
-  assert.strictEqual(navyColor.imageUrl, '/api/products/image/fileNavy1_large', 'imageUrl kept for back-compat');
-  const beigeColor = catalogShown.body.products[0].colors.find((c) => c.name === 'Beige');
-  assert.strictEqual(beigeColor.imageUrls.length, 1);
-  console.log('  OK imageUrls array present, imageUrl back-compat kept');
+  console.log('  OK imageUrls array present on the product itself');
 
   server.close();
   console.log('\nALL E2E CHECKS PASSED');

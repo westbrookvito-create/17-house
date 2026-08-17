@@ -8,7 +8,7 @@ function rowToProduct(row) {
     description: row.description,
     price: row.price,
     sizes: JSON.parse(row.sizes || '[]'),
-    colors: JSON.parse(row.colors || '[]'),
+    photos: JSON.parse(row.photos || '[]'),
     active: !!row.active,
     createdAt: row.created_at,
   };
@@ -35,7 +35,7 @@ function getById(id) {
 // существующую запись вместо создания второй копии.
 const DUPLICATE_GUARD_WINDOW_MS = 10000;
 
-function create({ name, description, price, sizes, colors }) {
+function create({ name, description, price, sizes, photos }) {
   const recentDuplicate = db
     .prepare(`SELECT * FROM products WHERE name = ? AND created_at > ? ORDER BY id DESC LIMIT 1`)
     .get(name, new Date(Date.now() - DUPLICATE_GUARD_WINDOW_MS).toISOString());
@@ -43,17 +43,17 @@ function create({ name, description, price, sizes, colors }) {
 
   const info = db
     .prepare(
-      `INSERT INTO products (name, description, price, sizes, colors, active, created_at)
+      `INSERT INTO products (name, description, price, sizes, photos, active, created_at)
        VALUES (?, ?, ?, ?, ?, 1, ?)`,
     )
-    .run(name, description, price, JSON.stringify(sizes), JSON.stringify(colors), new Date().toISOString());
+    .run(name, description, price, JSON.stringify(sizes), JSON.stringify(photos), new Date().toISOString());
   return getById(info.lastInsertRowid);
 }
 
 function updateField(id, field, value) {
-  const allowed = ['name', 'description', 'price', 'sizes', 'colors', 'active'];
+  const allowed = ['name', 'description', 'price', 'sizes', 'photos', 'active'];
   if (!allowed.includes(field)) throw new Error(`Field not editable: ${field}`);
-  const dbValue = field === 'sizes' || field === 'colors' ? JSON.stringify(value) : value;
+  const dbValue = field === 'sizes' || field === 'photos' ? JSON.stringify(value) : value;
   db.prepare(`UPDATE products SET ${field} = ? WHERE id = ?`).run(dbValue, id);
   return getById(id);
 }
