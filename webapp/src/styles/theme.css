@@ -1,6 +1,6 @@
 :root {
   --bg: #14100d;
-  --surface: #1f1a16;
+  --surface: #241e19;
   --surface-2: #1a1815;
   --text: #f4f1ea;
   --text-muted: #9a958c;
@@ -63,7 +63,7 @@ a {
   margin: 0 auto;
   min-height: 100%;
   position: relative;
-  background: var(--bg);
+  background: linear-gradient(180deg, #0d0906 0%, #1a130d 100%);
 }
 
 .app-content {
