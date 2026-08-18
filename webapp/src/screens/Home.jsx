@@ -42,15 +42,19 @@ export default function Home() {
     <div className="home-scroll">
       <section className="home-section">
         <div className="topbar" style={{ justifyContent: 'space-between' }}>
-          <div style={{ width: 36 }} />
+          <div style={{ width: 26 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Logo height={32} />
-            <h1 className="serif" style={{ fontSize: 22, margin: 0 }}>
+            <Logo height={36} />
+            <h1 className="serif" style={{ fontSize: 26, margin: 0 }}>
               17 House
             </h1>
           </div>
-          <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="Меню">
-            <IconMenu size={20} />
+          <button
+            onClick={() => setMenuOpen(true)}
+            aria-label="Меню"
+            style={{ background: 'none', border: 'none', padding: 0, display: 'flex', color: 'var(--text)' }}
+          >
+            <IconMenu size={26} />
           </button>
         </div>
 
