@@ -40,6 +40,7 @@ function deliveryFields(overrides = {}) {
     recipientName: 'Иван Иванов',
     phone: '+7 900 000 00 00',
     pvzAddress: 'Москва, ул. Тестовая, д. 1, ПВЗ СДЭК',
+    color: 'Navy',
     ...overrides,
   };
 }
@@ -162,14 +163,18 @@ async function main() {
   assert.ok(lastMessageTo(ADMIN_ID).includes('Админ-панель'));
   console.log('  OK');
 
-  console.log('== admin adds a product with several photos (one color = one product) ==');
+  console.log('== admin adds a product with two colors, each with its own photos ==');
   await sendCallback(ADMIN_ID, 'admin:add_product');
-  await sendText(ADMIN_ID, 'House Every Weekend Tee — Navy');
+  await sendText(ADMIN_ID, 'House Every Weekend Tee');
   await sendText(ADMIN_ID, 'Плотный хлопок, вышитая эмблема.');
   await sendText(ADMIN_ID, '3200');
   await sendText(ADMIN_ID, 'S, M, L, XL');
+  await sendText(ADMIN_ID, 'Navy');
   await sendPhoto(ADMIN_ID, 'fileNavy1');
   await sendPhoto(ADMIN_ID, 'fileNavy2');
+  await sendText(ADMIN_ID, '/nextcolor');
+  await sendText(ADMIN_ID, 'Beige');
+  await sendPhoto(ADMIN_ID, 'fileBeige1');
   await sendText(ADMIN_ID, '/done');
   assert.ok(lastMessageTo(ADMIN_ID).includes('Предпросмотр'), 'should show preview before publish');
   await sendCallback(ADMIN_ID, 'addproduct:publish');
@@ -178,20 +183,24 @@ async function main() {
   const products = productsModel.listActive();
   assert.strictEqual(products.length, 1);
   const product = products[0];
-  assert.strictEqual(product.name, 'House Every Weekend Tee — Navy');
+  assert.strictEqual(product.name, 'House Every Weekend Tee');
   assert.strictEqual(product.price, 3200);
   assert.deepStrictEqual(product.sizes, ['S', 'M', 'L', 'XL']);
-  assert.deepStrictEqual(product.photos, ['fileNavy1_large', 'fileNavy2_large']);
-  console.log('  OK product created:', product.id, product.name, `${product.photos.length} photos`);
+  assert.strictEqual(product.colors.length, 2);
+  assert.strictEqual(product.colors[0].name, 'Navy');
+  assert.deepStrictEqual(product.colors[0].photos, ['fileNavy1_large', 'fileNavy2_large']);
+  assert.strictEqual(product.colors[1].name, 'Beige');
+  assert.deepStrictEqual(product.colors[1].photos, ['fileBeige1_large']);
+  console.log('  OK product created:', product.id, product.name, '2 colors (Navy, Beige)');
 
   console.log('== creating a product twice with the same name within 10s does not duplicate it ==');
   const beforeCount = productsModel.listAll().length;
   const dupeAttempt = productsModel.create({
-    name: 'House Every Weekend Tee — Navy',
+    name: 'House Every Weekend Tee',
     description: 'Плотный хлопок, вышитая эмблема.',
     price: 3200,
     sizes: ['S', 'M', 'L', 'XL'],
-    photos: product.photos,
+    colors: product.colors,
   });
   assert.strictEqual(productsModel.listAll().length, beforeCount, 'no new row should be inserted');
   assert.strictEqual(dupeAttempt.id, product.id, 'duplicate create() should return the existing product');
@@ -218,6 +227,7 @@ async function main() {
   await sendText(ADMIN_ID, 'temp');
   await sendText(ADMIN_ID, '100');
   await sendText(ADMIN_ID, 'M');
+  await sendText(ADMIN_ID, 'Default');
   await sendPhoto(ADMIN_ID, 'fileTemp');
   await sendText(ADMIN_ID, '/done');
   await sendCallback(ADMIN_ID, 'addproduct:publish');
@@ -296,6 +306,16 @@ async function main() {
   assert.strictEqual(missingDetails.body.error, 'missing_delivery_details');
   console.log('  OK 400 missing_delivery_details');
 
+  console.log('== invalid order rejected (unknown color) ==');
+  const badColor = await api('/api/orders', {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({ productId: product.id, size: 'M', ...deliveryFields({ color: 'Purple' }) }),
+  });
+  assert.strictEqual(badColor.status, 400);
+  assert.strictEqual(badColor.body.error, 'invalid_color');
+  console.log('  OK 400 invalid_color');
+
   console.log('== place 3 real orders and confirm each via admin action ==');
   const validRequisiteKeys = config.paymentRequisites.map((r) => `${r.name}|${r.phone}|${r.bank}`);
   const paidOrderIds = [];
@@ -312,6 +332,7 @@ async function main() {
     assert.strictEqual(created.status, 200);
     const orderId = created.body.order.id;
     assert.strictEqual(created.body.order.status, 'pending');
+    assert.strictEqual(created.body.order.color, 'Navy');
     assert.strictEqual(created.body.order.recipientName, 'Иван Иванов');
     assert.strictEqual(created.body.order.pvzAddress, 'Москва, ул. Тестовая, д. 1, ПВЗ СДЭК');
     const { payment } = created.body.order;
@@ -324,6 +345,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 30)); // let the fire-and-forget admin notification run
     const notifyText = lastMessageTo(ADMIN_ID);
     assert.ok(notifyText && notifyText.includes(`заказ #${orderId}`), 'admin should be notified of new order');
+    assert.ok(notifyText.includes('Цвет: Navy'), 'admin notification must include the chosen color');
     assert.ok(notifyText.includes('ФИО получателя: Иван Иванов'), 'admin notification must include recipient name');
     assert.ok(notifyText.includes('Телефон: +7 900 000 00 00'), 'admin notification must include phone');
     assert.ok(notifyText.includes('Адрес ПВЗ:'), 'admin notification must include pickup address');
@@ -472,6 +494,13 @@ async function main() {
     '/api/products/image/fileNavy2_large',
   ]);
   console.log('  OK imageUrls array present on the product itself');
+
+  console.log('== catalog exposes per-color photo galleries for the swatch picker ==');
+  assert.deepStrictEqual(catalogShown.body.products[0].colors, [
+    { name: 'Navy', photos: ['/api/products/image/fileNavy1_large', '/api/products/image/fileNavy2_large'] },
+    { name: 'Beige', photos: ['/api/products/image/fileBeige1_large'] },
+  ]);
+  console.log('  OK colors array present with per-color photo URLs');
 
   server.close();
   console.log('\nALL E2E CHECKS PASSED');

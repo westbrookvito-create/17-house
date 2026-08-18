@@ -330,6 +330,58 @@ a {
   background: var(--beige);
 }
 
+.color-swatch-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 56px;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.color-swatch-thumb {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.color-swatch-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.color-swatch.selected .color-swatch-thumb {
+  border-color: var(--beige);
+}
+
+.color-swatch-name {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.color-swatch.selected .color-swatch-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.color-swatch:disabled {
+  opacity: 0.55;
+}
+
 .size-row {
   display: flex;
   gap: 8px;

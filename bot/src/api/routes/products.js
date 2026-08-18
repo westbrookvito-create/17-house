@@ -24,10 +24,21 @@ router.get('/image/:fileId', async (req, res) => {
 });
 
 router.get('/', requireTelegramAuth, (req, res) => {
-  const list = products.listActive().map((p) => ({
-    ...p,
-    imageUrls: p.photos.map((fileId) => `/api/products/image/${fileId}`),
-  }));
+  const list = products.listActive().map((p) => {
+    const colors = p.colors.map((c) => ({
+      name: c.name,
+      photos: c.photos.map((fileId) => `/api/products/image/${fileId}`),
+    }));
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      sizes: p.sizes,
+      colors,
+      imageUrls: colors[0]?.photos || [],
+    };
+  });
   res.json({ products: list, bonusThreshold: config.bonusThreshold, bonusPercent: config.bonusPercent });
 });
 

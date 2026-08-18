@@ -16,6 +16,7 @@ function rowToOrder(row) {
     userId: row.user_id,
     productId: row.product_id,
     productName: row.product_name,
+    color: row.color,
     size: row.size,
     basePrice: row.base_price,
     price: row.price,
@@ -41,6 +42,7 @@ function create({
   userId,
   productId,
   productName,
+  color,
   size,
   basePrice,
   price,
@@ -54,16 +56,17 @@ function create({
   const info = db
     .prepare(
       `INSERT INTO orders (
-         user_id, product_id, product_name, size, base_price, price, discount_percent,
+         user_id, product_id, product_name, color, size, base_price, price, discount_percent,
          status, created_at, delivery_method, recipient_name, phone, pvz_address,
          payment_name, payment_phone, payment_bank
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       userId,
       productId,
       productName,
+      color || null,
       size,
       basePrice,
       price,

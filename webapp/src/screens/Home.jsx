@@ -120,11 +120,16 @@ export default function Home() {
 }
 
 function ProductBlock({ product, bonusUnlocked, toast }) {
+  const [colorIndex, setColorIndex] = useState(0);
   const [size, setSize] = useState(null);
   const [stage, setStage] = useState('select'); // select -> form -> payment
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState(null);
   const [form, setForm] = useState({ deliveryMethod: '', recipientName: '', phone: '', pvzAddress: '' });
+
+  const colors = product.colors || [];
+  const hasNamedColors = colors.some((c) => c.name);
+  const activeColor = colors[colorIndex];
 
   const finalPrice = bonusUnlocked ? Math.round(product.price * 0.9) : product.price;
   const formValid =
@@ -141,6 +146,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
       const res = await api.createOrder({
         productId: product.id,
         size,
+        color: hasNamedColors ? activeColor?.name : undefined,
         deliveryMethod: form.deliveryMethod,
         recipientName: form.recipientName.trim(),
         phone: form.phone.trim(),
@@ -164,15 +170,37 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     toast('Номер скопирован');
   }
 
-  const galleryImages = product.imageUrls || [];
+  const galleryImages = activeColor?.photos || product.imageUrls || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
+      {galleryImages.length > 0 && <ProductGallery key={colorIndex} images={galleryImages} alt={product.name} />}
 
       <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
         {product.name}
       </h3>
+
+      {hasNamedColors && colors.length > 1 && (
+        <div className="color-swatch-row">
+          {colors.map((c, i) => (
+            <button
+              key={`${c.name}-${i}`}
+              type="button"
+              className={`color-swatch${i === colorIndex ? ' selected' : ''}`}
+              disabled={stage !== 'select'}
+              onClick={() => {
+                setColorIndex(i);
+                hapticSelect();
+              }}
+            >
+              <span className="color-swatch-thumb">
+                <img src={buildImageUrl(c.photos[0])} alt={c.name} />
+              </span>
+              <span className="color-swatch-name">{c.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {product.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>
