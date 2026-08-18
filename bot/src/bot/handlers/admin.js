@@ -5,6 +5,7 @@ const ordersModel = require('../../models/orders');
 const usersModel = require('../../models/users');
 const { adminMenuKeyboard } = require('../keyboards');
 const { formatOrderDetails } = require('../../api/routes/orders');
+const { buildOrdersCsv } = require('../../utils/exportOrders');
 
 // Простая in-memory машина состояний для пошаговых диалогов админа
 // (добавление / редактирование товара). Ключ — telegram user id.
@@ -358,6 +359,16 @@ function register(bot) {
     return ctx.replyWithHTML(text, {
       reply_markup: Markup.inlineKeyboard([[Markup.button.callback('⬅️ В админ-панель', 'admin:menu')]]).reply_markup,
     });
+  });
+
+  bot.action('admin:export_orders', async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    await ctx.answerCbQuery();
+    const orders = ordersModel.listFiltered({});
+    if (!orders.length) return ctx.reply('Заказов пока нет — экспортировать нечего.');
+    const csv = buildOrdersCsv(orders, usersModel);
+    const filename = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    return ctx.replyWithDocument({ source: Buffer.from(csv, 'utf8'), filename });
   });
 
   bot.action('admin:list_orders', (ctx) => {

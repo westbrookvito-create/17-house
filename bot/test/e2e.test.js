@@ -66,6 +66,8 @@ ApiClient.prototype.callApi = async function callApi(method, payload) {
       return { message_id: 1, chat: { id: 1 }, date: 0, text: payload.text || '' };
     case 'getFile':
       return { file_id: payload.file_id, file_unique_id: 'x', file_path: 'photos/fake.jpg' };
+    case 'sendDocument':
+      return { message_id: apiCalls.length, chat: { id: payload.chat_id }, date: 0, document: { file_id: 'doc' } };
     default:
       return {};
   }
@@ -506,6 +508,18 @@ async function main() {
   assert.ok(statsText.includes('Статистика продаж'));
   assert.ok(statsText.includes('Выручка'));
   console.log('  OK month stats shown');
+
+  console.log('== admin can export all orders as CSV ==');
+  const beforeExport = apiCalls.length;
+  await sendCallback(ADMIN_ID, 'admin:export_orders');
+  const exportCall = apiCalls.slice(beforeExport).find((c) => c.method === 'sendDocument');
+  assert.ok(exportCall, 'expected a sendDocument call');
+  assert.ok(/^orders-\d{4}-\d{2}-\d{2}\.csv$/.test(exportCall.payload.document.filename), 'filename should be dated orders-YYYY-MM-DD.csv');
+  const csvText = exportCall.payload.document.source.toString('utf8');
+  assert.ok(csvText.includes('ID,Дата создания,Статус,Товар'), 'CSV should start with the expected header row');
+  assert.ok(csvText.includes('House Every Weekend Tee'), 'CSV should include the product name from a real order');
+  assert.ok(csvText.includes(user.member_code), "CSV should include the buyer's member code");
+  console.log('  OK CSV export contains header + real order rows');
 
   console.log('== admin can broadcast a text message to all users ==');
   await sendCallback(ADMIN_ID, 'admin:broadcast');

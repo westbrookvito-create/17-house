@@ -15,6 +15,7 @@ function adminMenuKeyboard() {
     [Markup.button.callback('➕ Добавить товар', 'admin:add_product')],
     [Markup.button.callback('📦 Товары', 'admin:list_products')],
     [Markup.button.callback('🧾 Заказы', 'admin:list_orders')],
+    [Markup.button.callback('📄 Экспорт заказов (CSV)', 'admin:export_orders')],
     [Markup.button.callback('📢 Рассылка всем', 'admin:broadcast')],
     [Markup.button.callback('👥 Все пользователи', 'admin:list_users')],
     [Markup.button.callback('🏅 Участники клуба', 'admin:list_members')],
