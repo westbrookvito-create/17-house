@@ -55,13 +55,15 @@ export default function Home() {
 
         <div className="hero hero-lg" style={{ backgroundImage: 'url(/hero.jpg)' }} />
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 className="serif" style={{ fontSize: 22 }}>
-            Добро пожаловать в 17 House
-          </h2>
-          <p className="muted" style={{ fontSize: 15, lineHeight: 1.6 }}>
-            Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
-          </p>
+        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2 className="serif" style={{ fontSize: 24 }}>
+              Добро пожаловать в 17 House
+            </h2>
+            <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
+              Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
+            </p>
+          </div>
           <button className="btn btn-primary" onClick={scrollToCatalog}>
             Купить футболку
           </button>
