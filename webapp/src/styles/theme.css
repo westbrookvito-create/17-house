@@ -261,13 +261,6 @@ a {
   min-height: 230px;
 }
 
-.hero-full {
-  margin: 0 -18px;
-  border-radius: 0;
-  border: none;
-  min-height: 280px;
-}
-
 .hero::after {
   content: '';
   position: absolute;

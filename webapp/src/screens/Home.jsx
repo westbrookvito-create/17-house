@@ -53,7 +53,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="hero hero-full" style={{ backgroundImage: 'url(/hero.jpg)' }} />
+        <div className="hero hero-lg" style={{ backgroundImage: 'url(/hero.jpg)' }} />
 
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h2 className="serif" style={{ fontSize: 22 }}>
