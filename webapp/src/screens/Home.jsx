@@ -58,22 +58,22 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="hero-photo" style={{ backgroundImage: 'url(/hero.jpg)' }}>
-          <div className="hero-overlay-card">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <h2 className="serif hero-overlay-title" style={{ fontSize: 24 }}>
-                Добро пожаловать в
-                <br />
-                17 House
-              </h2>
-              <p className="hero-overlay-desc" style={{ fontSize: 16, lineHeight: 1.6 }}>
-                Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
-              </p>
-            </div>
-            <button className="btn btn-primary" onClick={scrollToCatalog}>
-              Купить футболку
-            </button>
+        <div className="hero hero-lg" style={{ backgroundImage: 'url(/hero.jpg)' }} />
+
+        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2 className="serif" style={{ fontSize: 24 }}>
+              Добро пожаловать в
+              <br />
+              17 House
+            </h2>
+            <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
+              Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
+            </p>
           </div>
+          <button className="btn btn-primary" onClick={scrollToCatalog}>
+            Купить футболку
+          </button>
         </div>
       </section>
 
