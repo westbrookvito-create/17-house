@@ -155,8 +155,13 @@ a {
   opacity: 0.85;
 }
 
+.menu-item {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
 .menu-item:active {
   background: var(--surface-2);
+  transform: scale(0.98);
 }
 
 @keyframes fade-in {
@@ -194,10 +199,12 @@ a {
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .icon-btn:active {
   background: var(--surface-2);
+  transform: scale(0.92);
 }
 
 .card {
@@ -218,13 +225,14 @@ a {
   padding: 14px 18px;
   font-size: 15px;
   font-weight: 600;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.1s ease;
   text-decoration: none;
   box-sizing: border-box;
 }
 
 .btn:active {
   opacity: 0.8;
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -284,6 +292,7 @@ a {
 
 .product-gallery {
   position: relative;
+  animation: fade-in 0.25s ease-out;
 }
 
 .product-gallery-track {
@@ -328,6 +337,11 @@ a {
   height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.product-gallery-dot.active {
+  transform: scale(1.2);
 }
 
 .product-gallery-dot.active {
@@ -350,6 +364,11 @@ a {
   background: none;
   border: none;
   padding: 0;
+  transition: transform 0.1s ease;
+}
+
+.color-swatch:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .color-swatch-thumb {
@@ -359,6 +378,7 @@ a {
   border-radius: 12px;
   overflow: hidden;
   border: 2px solid transparent;
+  transition: border-color 0.15s ease;
 }
 
 .color-swatch-thumb img {
@@ -401,6 +421,11 @@ a {
   color: var(--text-muted);
   text-align: center;
   font-size: 13px;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.size-chip:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .size-chip.selected {
@@ -482,6 +507,12 @@ a {
   background: var(--surface);
   border: none;
   border-radius: var(--radius-md);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.list-item:active {
+  background: var(--surface-2);
+  transform: scale(0.98);
 }
 
 .list-item + .list-item {
@@ -528,6 +559,18 @@ a {
   font-size: 13.5px;
   z-index: 60;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .center-state {

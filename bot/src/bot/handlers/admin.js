@@ -67,6 +67,26 @@ const DELIVERY_FILTERS = [
   ['cdek', 'СДЭК'],
 ];
 
+const USERS_PAGE_SIZE = 20;
+
+function renderUserLine(u) {
+  const name = u.username ? `@${u.username}` : u.first_name || 'Без имени';
+  const badges = [`👕${u.shirts_purchased}`];
+  if (u.bonus_unlocked) badges.push('🎁');
+  if (u.is_admin) badges.push('👑');
+  return `#${u.member_code} — ${name} (id ${u.telegram_id}) — ${badges.join(' ')}`;
+}
+
+function usersPageKeyboard(prefix, offset, total) {
+  const nav = [];
+  if (offset > 0) nav.push(Markup.button.callback('⬅️ Назад', `${prefix}:${Math.max(0, offset - USERS_PAGE_SIZE)}`));
+  if (offset + USERS_PAGE_SIZE < total) nav.push(Markup.button.callback('Вперёд ➡️', `${prefix}:${offset + USERS_PAGE_SIZE}`));
+  const rows = [];
+  if (nav.length) rows.push(nav);
+  rows.push([Markup.button.callback('⬅️ В админ-панель', 'admin:menu')]);
+  return Markup.inlineKeyboard(rows).reply_markup;
+}
+
 function renderOrderText(order, user) {
   const displayName = user?.username ? `@${user.username}` : user?.first_name || `id${order.userId}`;
   return (
@@ -224,6 +244,54 @@ function register(bot) {
       Markup.button.callback(`${p.active ? '🟢' : '⚪️'} ${p.name} — ${p.price}₽`, `product:view:${p.id}`),
     ]);
     return ctx.reply('Товары клуба:', Markup.inlineKeyboard(rows));
+  });
+
+  bot.action('admin:menu', (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    ctx.answerCbQuery();
+    return ctx.reply(`Админ-панель ${config.clubName}`, adminMenuKeyboard());
+  });
+
+  bot.action(/^admin:list_users(?::(\d+))?$/, async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    await ctx.answerCbQuery();
+    const offset = Number(ctx.match[1] || 0);
+    const all = usersModel.listAll();
+    if (!all.length) return ctx.reply('Пользователей пока нет.');
+    const page = all.slice(offset, offset + USERS_PAGE_SIZE);
+    const text =
+      `👥 <b>Все пользователи</b> (${offset + 1}–${offset + page.length} из ${all.length}):\n\n` +
+      page.map(renderUserLine).join('\n');
+    return ctx.replyWithHTML(text, { reply_markup: usersPageKeyboard('admin:list_users', offset, all.length) });
+  });
+
+  bot.action(/^admin:list_members(?::(\d+))?$/, async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    await ctx.answerCbQuery();
+    const offset = Number(ctx.match[1] || 0);
+    const all = usersModel.listMembers();
+    if (!all.length) return ctx.reply('В клубе пока нет участников (никто не купил футболку).');
+    const page = all.slice(offset, offset + USERS_PAGE_SIZE);
+    const text =
+      `🏅 <b>Участники клуба</b> (${offset + 1}–${offset + page.length} из ${all.length}):\n\n` +
+      page.map(renderUserLine).join('\n');
+    return ctx.replyWithHTML(text, { reply_markup: usersPageKeyboard('admin:list_members', offset, all.length) });
+  });
+
+  bot.action('admin:stats_month', async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    await ctx.answerCbQuery();
+    const s = ordersModel.monthStats();
+    const text =
+      `📊 <b>Статистика продаж за ${s.monthLabel}</b>\n\n` +
+      `Всего заказов: ${s.totalOrders}\n` +
+      `✅ Оплачено: ${s.paidOrders}\n` +
+      `⏳ Ожидают оплаты: ${s.pendingOrders}\n` +
+      `❌ Отменено: ${s.cancelledOrders}\n\n` +
+      `💰 Выручка (по оплаченным): ${s.revenue} ₽`;
+    return ctx.replyWithHTML(text, {
+      reply_markup: Markup.inlineKeyboard([[Markup.button.callback('⬅️ В админ-панель', 'admin:menu')]]).reply_markup,
+    });
   });
 
   bot.action('admin:list_orders', (ctx) => {

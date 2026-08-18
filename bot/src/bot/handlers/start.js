@@ -47,8 +47,26 @@ function register(bot) {
     }
   }
 
+  // Уведомляет админов о новом участнике сразу при первом /start.
+  async function notifyAdminsNewUser(ctx, user) {
+    const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
+    const text =
+      `🆕 <b>Новый участник</b>\n` +
+      `Имя: ${displayName}\n` +
+      `Telegram ID: ${user.telegram_id}\n` +
+      `Карта: #${user.member_code}`;
+    for (const adminId of config.adminIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await ctx.telegram
+        .sendMessage(adminId, text, { parse_mode: 'HTML' })
+        .catch((err) => console.error('[start] new user notify failed', err.message));
+    }
+  }
+
   bot.start(async (ctx) => {
+    const isNew = !users.getByTelegramId(ctx.from.id);
     const user = users.getOrCreate(ctx.from);
+    if (isNew) await notifyAdminsNewUser(ctx, user);
     if (!user.privacy_accepted) {
       return ctx.replyWithHTML(privacyText, privacyKeyboard());
     }

@@ -32,7 +32,19 @@ export default function ClubCard() {
       {error && <div className="center-state">{error}</div>}
       {!error && !card && <div className="center-state">Загрузка…</div>}
 
-      {card && (
+      {card && !card.hasPurchased && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', textAlign: 'center' }}>
+          <h3 className="serif" style={{ fontSize: 18 }}>
+            Визитка клуба закрыта
+          </h3>
+          <p className="muted">Вам нужно приобрести футболку, чтобы вступить в клуб.</p>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/')}>
+            Перейти к футболкам
+          </button>
+        </div>
+      )}
+
+      {card && card.hasPurchased && (
         <>
           <div className="member-card-photo" style={{ backgroundImage: 'url(/card.jpg)' }} />
 
@@ -48,7 +60,7 @@ export default function ClubCard() {
               Это ваша личная визитка 17 House.
             </h3>
             <p className="muted">
-              При покупке футболки вы получаете визитку с уникальным кодом для доступа в закрытый канал клуба.
+              Ваш персональный код открывает доступ в закрытый канал клуба.
             </p>
 
             <div>
@@ -61,30 +73,14 @@ export default function ClubCard() {
               </ul>
             </div>
 
-            {card.hasPurchased ? (
-              <>
-                <p className="muted">
-                  Отсканируйте код или введите его в Telegram, чтобы получить доступ в закрытый канал клуба.
-                </p>
-                <button className="btn btn-primary" onClick={handleCopy}>
-                  Скопировать код
-                </button>
-                {card.channelUrl && (
-                  <a className="btn btn-outline" href={card.channelUrl} target="_blank" rel="noreferrer">
-                    Открыть канал клуба
-                  </a>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="muted">
-                  Доступ в закрытый канал открывается после первой покупки в клубе. Оформите и оплатите заказ —
-                  и мы пришлём приглашение в этот чат.
-                </p>
-                <button className="btn btn-primary" onClick={() => navigate('/')}>
-                  Перейти к футболкам
-                </button>
-              </>
+            <p className="muted">Отсканируйте код или введите его в Telegram, чтобы получить доступ.</p>
+            <button className="btn btn-outline" onClick={handleCopy}>
+              Скопировать код
+            </button>
+            {card.channelUrl && (
+              <a className="btn btn-primary" href={card.channelUrl} target="_blank" rel="noreferrer">
+                Вступить в чат
+              </a>
             )}
           </div>
         </>

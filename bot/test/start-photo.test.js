@@ -83,7 +83,9 @@ async function sendCallback(fromId, data) {
 async function main() {
   console.log('== first /start asks for privacy consent before anything else ==');
   await sendStart(111);
-  const consentCall = calls.find((c) => c.method === 'sendMessage');
+  // Filter to the registering user's own chat — a new-user admin notice (sent to
+  // a different chat_id, ADMIN_IDS='1') may also land in `calls` at this point.
+  const consentCall = calls.find((c) => c.method === 'sendMessage' && c.payload.chat_id === 111);
   assert.ok(consentCall, 'expected a consent sendMessage call');
   assert.ok(consentCall.payload.text.includes('обработку персональных данных'));
   const consentButtons = consentCall.payload.reply_markup.inline_keyboard.flat();

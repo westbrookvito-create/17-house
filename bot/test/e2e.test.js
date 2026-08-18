@@ -149,8 +149,22 @@ async function main() {
   await sendText(USER_ID, '/start');
   const user = usersModel.getByTelegramId(USER_ID);
   assert.ok(user, 'user should be created on /start');
-  assert.strictEqual(user.member_code, String(user.id), 'member_code should equal sequential row id');
+  assert.ok(/^[A-Z]{6}$/.test(user.member_code), 'member_code should be 6 random uppercase letters');
   console.log('  OK member_code =', user.member_code);
+
+  console.log('== admin is notified when a new user registers ==');
+  const newUserNotice = lastMessageTo(ADMIN_ID);
+  assert.ok(newUserNotice && newUserNotice.includes('Новый участник'), 'admin should be notified of the new user');
+  assert.ok(newUserNotice.includes(String(USER_ID)), 'notification should include the telegram id');
+  assert.ok(newUserNotice.includes(user.member_code), 'notification should include the member code');
+  console.log('  OK admin notified of new registration');
+
+  console.log('== a returning user does not trigger another registration notice ==');
+  const beforeReturn = apiCalls.filter((c) => c.method === 'sendMessage' && String(c.payload.chat_id) === String(ADMIN_ID)).length;
+  await sendText(USER_ID, '/start');
+  const afterReturn = apiCalls.filter((c) => c.method === 'sendMessage' && String(c.payload.chat_id) === String(ADMIN_ID)).length;
+  assert.strictEqual(afterReturn, beforeReturn, 'returning user must not renotify admin');
+  console.log('  OK no duplicate notice for a returning user');
 
   console.log('== non-admin /admin is ignored ==');
   const before = apiCalls.length;
@@ -470,6 +484,27 @@ async function main() {
   const yandexPaidCount = await assertFilterCount('paid', 'yandex');
   assert.notStrictEqual(cdekPaidCount, yandexPaidCount, 'delivery-method filter should actually narrow results');
   console.log('  OK filter menu returns correct counts for every status + delivery combination');
+
+  console.log('== admin can list all users ==');
+  await sendCallback(ADMIN_ID, 'admin:list_users');
+  const usersText = lastMessageTo(ADMIN_ID);
+  assert.ok(usersText.includes('Все пользователи'));
+  assert.ok(usersText.includes(user.member_code), 'the registered user should appear in the list');
+  console.log('  OK users list shown');
+
+  console.log('== admin can list club members (bought at least once) ==');
+  await sendCallback(ADMIN_ID, 'admin:list_members');
+  const membersText = lastMessageTo(ADMIN_ID);
+  assert.ok(membersText.includes('Участники клуба'));
+  assert.ok(membersText.includes(user.member_code), 'the buyer should be listed as a club member');
+  console.log('  OK members list shown');
+
+  console.log('== admin can view this month\'s sales stats ==');
+  await sendCallback(ADMIN_ID, 'admin:stats_month');
+  const statsText = lastMessageTo(ADMIN_ID);
+  assert.ok(statsText.includes('Статистика продаж'));
+  assert.ok(statsText.includes('Выручка'));
+  console.log('  OK month stats shown');
 
   console.log('== contact-manager relay forwards plain text to admin ==');
   const beforeForward = apiCalls.filter((c) => c.method === 'forwardMessage').length;

@@ -113,6 +113,25 @@ function listFiltered({ status, deliveryMethod } = {}) {
     .map(rowToOrder);
 }
 
+const PAID_STATUSES = ['paid', 'shipped', 'received'];
+
+// Статистика продаж за текущий календарный месяц — для админ-панели.
+function monthStats() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const rows = db.prepare(`SELECT status, price FROM orders WHERE created_at >= ?`).all(monthStart);
+  const paid = rows.filter((r) => PAID_STATUSES.includes(r.status));
+
+  return {
+    monthLabel: now.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+    totalOrders: rows.length,
+    paidOrders: paid.length,
+    pendingOrders: rows.filter((r) => r.status === 'pending').length,
+    cancelledOrders: rows.filter((r) => r.status === 'cancelled').length,
+    revenue: paid.reduce((sum, r) => sum + r.price, 0),
+  };
+}
+
 function setStatus(id, status) {
   const column = STATUS_TIMESTAMP_COLUMN[status];
   if (column) {
@@ -123,4 +142,4 @@ function setStatus(id, status) {
   return getById(id);
 }
 
-module.exports = { STATUSES, create, getById, listByUser, listFiltered, setStatus };
+module.exports = { STATUSES, create, getById, listByUser, listFiltered, setStatus, monthStats };
