@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import IconMenu from '../components/icons/Menu';
+import IconUser from '../components/icons/User';
+import IconGift from '../components/icons/Gift';
+import IconCard from '../components/icons/Card';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { hapticSuccess, hapticError, hapticSelect, copyToClipboard } from '../telegram';
@@ -98,12 +101,15 @@ export default function Home() {
           <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
           <div className="menu-panel">
             <button className="menu-item" onClick={() => goTo('/profile')}>
+              <IconUser size={20} />
               Профиль
             </button>
             <button className="menu-item" onClick={() => goTo('/bonus')}>
+              <IconGift size={20} />
               Бонусы
             </button>
             <button className="menu-item" onClick={() => goTo('/card')}>
+              <IconCard size={20} />
               Визитка клуба
             </button>
           </div>

@@ -138,6 +138,9 @@ a {
 }
 
 .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-align: left;
   padding: 14px 12px;
   border-radius: var(--radius-sm);
@@ -145,6 +148,11 @@ a {
   border: none;
   color: var(--text);
   font-size: 15px;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .menu-item:active {
