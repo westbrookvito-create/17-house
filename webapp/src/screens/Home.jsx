@@ -81,7 +81,7 @@ export default function Home() {
       </section>
 
       <section className="home-section" ref={catalogRef}>
-        <h3 className="serif" style={{ fontSize: 18, margin: 0 }}>
+        <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
           Каталог
         </h3>
 
