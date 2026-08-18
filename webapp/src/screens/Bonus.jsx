@@ -57,7 +57,7 @@ export default function Bonus() {
               </>
             )}
 
-            <button className="btn btn-primary" onClick={() => navigate('/shirts')}>
+            <button className="btn btn-primary" onClick={() => navigate('/')}>
               Подробнее
             </button>
           </div>

@@ -67,7 +67,7 @@ a {
 }
 
 .app-content {
-  padding-bottom: calc(72px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
 }
 
 .screen {
@@ -78,48 +78,54 @@ a {
   animation: fade-in 0.18s ease-out;
 }
 
-.bottom-nav {
+/* Бургер-меню (Профиль / Бонусы / Визитка клуба) — единственная навигация
+   вне главной страницы теперь, раз нижней панели больше нет. */
+.menu-backdrop {
   position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 520px;
-  display: flex;
-  background: var(--surface);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
-  padding: 9px 6px calc(9px + var(--safe-bottom));
-  z-index: 50;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 60;
+  animation: fade-in 0.15s ease-out;
 }
 
-.bottom-nav-item {
-  flex: 1;
+.menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 240px;
+  max-width: 75vw;
+  background: var(--surface);
+  z-index: 61;
+  padding: calc(24px + var(--safe-top)) 14px calc(24px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 4px;
-  padding: 5px 2px;
-  color: var(--text-muted);
-  text-decoration: none;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+  animation: slide-in 0.18s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.menu-item {
+  text-align: left;
+  padding: 14px 12px;
   border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.bottom-nav-item.active {
+  background: none;
+  border: none;
   color: var(--text);
+  font-size: 15px;
 }
 
-.bottom-nav-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.bottom-nav-label {
-  font-size: 10.5px;
-  letter-spacing: 0.01em;
+.menu-item:active {
+  background: var(--surface-2);
 }
 
 @keyframes fade-in {
@@ -247,17 +253,6 @@ a {
   pointer-events: none;
 }
 
-.home-screen {
-  min-height: calc(100vh - 74px - var(--safe-bottom));
-}
-
-.card-fill {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 24px;
-}
 
 .product-gallery {
   position: relative;

@@ -81,7 +81,7 @@ export default function ClubCard() {
                   Доступ в закрытый канал открывается после первой покупки в клубе. Оформите и оплатите заказ —
                   и мы пришлём приглашение в этот чат.
                 </p>
-                <button className="btn btn-primary" onClick={() => navigate('/shirts')}>
+                <button className="btn btn-primary" onClick={() => navigate('/')}>
                   Перейти к футболкам
                 </button>
               </>
