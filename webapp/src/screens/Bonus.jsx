@@ -19,7 +19,7 @@ export default function Bonus() {
 
   return (
     <div className="screen">
-      <Header title="Бонусы" />
+      <Header title="Бонусы" showBack />
 
       {error && <div className="center-state">{error}</div>}
       {!error && !bonus && <div className="center-state">Загрузка…</div>}

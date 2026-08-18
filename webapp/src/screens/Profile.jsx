@@ -38,7 +38,7 @@ export default function Profile() {
 
   return (
     <div className="screen">
-      <Header title="Профиль" />
+      <Header title="Профиль" showBack />
 
       {error && <div className="center-state">{error}</div>}
       {!error && !user && <div className="center-state">Загрузка…</div>}
