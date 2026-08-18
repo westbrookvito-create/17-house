@@ -258,7 +258,7 @@ a {
 }
 
 .hero-lg {
-  min-height: 230px;
+  min-height: 46vh;
 }
 
 .hero::after {
