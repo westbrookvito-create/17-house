@@ -39,34 +39,36 @@ export default function Home() {
   }
 
   return (
-    <div className="screen">
-      <div className="topbar" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Logo height={32} />
-          <h1 className="serif" style={{ fontSize: 24, margin: 0 }}>
-            17 House
-          </h1>
+    <div className="home-scroll">
+      <section className="home-section">
+        <div className="topbar" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Logo height={32} />
+            <h1 className="serif" style={{ fontSize: 24, margin: 0 }}>
+              17 House
+            </h1>
+          </div>
+          <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="Меню">
+            <IconMenu size={20} />
+          </button>
         </div>
-        <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="Меню">
-          <IconMenu size={20} />
-        </button>
-      </div>
 
-      <div className="hero hero-full" style={{ backgroundImage: 'url(/hero.jpg)' }} />
+        <div className="hero hero-full" style={{ backgroundImage: 'url(/hero.jpg)' }} />
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h2 className="serif" style={{ fontSize: 22 }}>
-          Добро пожаловать в 17 House
-        </h2>
-        <p className="muted" style={{ fontSize: 15, lineHeight: 1.6 }}>
-          Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
-        </p>
-        <button className="btn btn-primary" onClick={scrollToCatalog}>
-          Купить футболку
-        </button>
-      </div>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2 className="serif" style={{ fontSize: 22 }}>
+            Добро пожаловать в 17 House
+          </h2>
+          <p className="muted" style={{ fontSize: 15, lineHeight: 1.6 }}>
+            Закрытый клуб по интересам. Привилегии, события и люди на одной волне.
+          </p>
+          <button className="btn btn-primary" onClick={scrollToCatalog}>
+            Купить футболку
+          </button>
+        </div>
+      </section>
 
-      <div ref={catalogRef} style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 4 }}>
+      <section className="home-section" ref={catalogRef}>
         <h3 className="serif" style={{ fontSize: 18, margin: 0 }}>
           Каталог
         </h3>
@@ -80,7 +82,7 @@ export default function Home() {
         {products?.map((p) => (
           <ProductBlock key={p.id} product={p} bonusUnlocked={profile?.bonusUnlocked} toast={toast} />
         ))}
-      </div>
+      </section>
 
       {menuOpen && (
         <>

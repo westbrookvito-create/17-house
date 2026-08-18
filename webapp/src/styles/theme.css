@@ -78,6 +78,29 @@ a {
   animation: fade-in 0.18s ease-out;
 }
 
+/* Главная — одностраничник со скролл-снапом: приветствие и каталог не два
+   отдельных экрана, а две секции одной страницы, между которыми скролл
+   (свайп вниз или кнопка "Купить футболку") плавно "перелистывает" на
+   следующую, как переход между слайдами, а не свободная прокрутка. */
+.home-scroll {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-section {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: calc(18px + var(--safe-top)) 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fade-in 0.18s ease-out;
+}
+
 /* Бургер-меню (Профиль / Бонусы / Визитка клуба) — единственная навигация
    вне главной страницы теперь, раз нижней панели больше нет. */
 .menu-backdrop {
