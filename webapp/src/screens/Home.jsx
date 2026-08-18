@@ -168,11 +168,11 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h3 className="serif" style={{ fontSize: 18, margin: 0, padding: '0 2px' }}>
+      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
+
+      <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
         {product.name}
       </h3>
-
-      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={product.name} />}
 
       {product.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>
