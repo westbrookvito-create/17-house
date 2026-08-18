@@ -21,10 +21,11 @@ async function request(path, options = {}) {
 
 export const api = {
   getProfile: () => request('/api/profile'),
-  getClubCard: () => request('/api/profile/club-card'),
   getBonus: () => request('/api/profile/bonus'),
   getProducts: () => request('/api/products'),
   getOrders: () => request('/api/orders'),
   createOrder: (payload) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
+  uploadReceipt: (orderId, imageBase64) =>
+    request(`/api/orders/${orderId}/receipt`, { method: 'POST', body: JSON.stringify({ imageBase64 }) }),
 };

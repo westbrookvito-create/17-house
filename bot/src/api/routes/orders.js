@@ -36,7 +36,10 @@ router.post('/', async (req, res) => {
   if (!DELIVERY_METHODS.includes(deliveryMethod)) {
     return res.status(400).json({ error: 'invalid_delivery_method' });
   }
-  if (!recipientName?.trim() || !phone?.trim() || !pvzAddress?.trim()) {
+  // Яндекс Доставка сама запрашивает получателя при оформлении, поэтому
+  // ФИО не нужно; для остальных способов (например СДЭК) оно обязательно.
+  const needsRecipientName = deliveryMethod !== 'yandex';
+  if ((needsRecipientName && !recipientName?.trim()) || !phone?.trim() || !pvzAddress?.trim()) {
     return res.status(400).json({ error: 'missing_delivery_details' });
   }
 
@@ -56,7 +59,7 @@ router.post('/', async (req, res) => {
     price,
     discountPercent,
     deliveryMethod,
-    recipientName: recipientName.trim(),
+    recipientName: needsRecipientName ? recipientName.trim() : null,
     phone: phone.trim(),
     pvzAddress: pvzAddress.trim(),
     payment,
@@ -65,6 +68,37 @@ router.post('/', async (req, res) => {
   res.json({ order });
 
   notifyAdmins(order, user).catch((err) => console.error('[orders] admin notify failed', err.message));
+});
+
+// Клиент прикладывает скриншот перевода после оплаты — пересылаем чек
+// админам прямо в чат заказа, без сохранения файла на сервере.
+router.post('/:id/receipt', async (req, res) => {
+  const order = ordersModel.getById(Number(req.params.id));
+  if (!order || order.userId !== req.dbUser.id) {
+    return res.status(404).json({ error: 'order_not_found' });
+  }
+
+  const { imageBase64 } = req.body || {};
+  const match = /^data:image\/(png|jpe?g|webp);base64,(.+)$/.exec(imageBase64 || '');
+  if (!match) {
+    return res.status(400).json({ error: 'invalid_receipt_image' });
+  }
+
+  const buffer = Buffer.from(match[2], 'base64');
+  const user = req.dbUser;
+  const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
+  const caption = `🧾 Чек по заказу #${order.id} «${order.productName}»\nОт: ${displayName} (карта #${user.member_code})`;
+
+  try {
+    for (const adminId of config.adminIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await bot.telegram.sendPhoto(adminId, { source: buffer }, { caption });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[orders] receipt forward failed', err.message);
+    res.status(502).json({ error: 'receipt_forward_failed' });
+  }
 });
 
 function formatOrderDetails(order) {
@@ -79,7 +113,7 @@ function formatOrderDetails(order) {
     `Размер: ${order.size || '—'}\n` +
     `Сумма: ${order.price} ₽${discountLine}\n\n` +
     `🚚 Доставка: ${deliveryLabel}\n` +
-    `ФИО получателя: ${order.recipientName}\n` +
+    (order.recipientName ? `ФИО получателя: ${order.recipientName}\n` : '') +
     `Телефон: ${order.phone}\n` +
     `Адрес ПВЗ: ${order.pvzAddress}\n\n` +
     `💳 Реквизиты, показанные клиенту:\n` +

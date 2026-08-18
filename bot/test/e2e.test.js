@@ -4,9 +4,9 @@
 //
 // Covers: user registration + member codes, admin product wizard (create,
 // edit, hide/show, delete), the full order lifecycle (create → notify admin
-// → confirm/cancel → notify buyer), club-card purchase gating, bonus
-// threshold + discount, idempotent order confirmation, and the
-// contact-manager message relay.
+// → confirm/cancel → notify buyer), bonus threshold + discount, receipt
+// upload, idempotent order confirmation, and the contact-manager message
+// relay.
 
 process.env.BOT_TOKEN = 'test:token';
 process.env.ADMIN_IDS = '999999';
@@ -280,11 +280,44 @@ async function main() {
   assert.strictEqual(unauth.status, 401);
   console.log('  OK 401 without auth');
 
-  console.log('== club-card hasPurchased starts false ==');
-  let cc = await api('/api/profile/club-card', { headers: authHeaders(USER_ID) });
-  assert.strictEqual(cc.body.hasPurchased, false);
-  assert.strictEqual(cc.body.memberCode, user.member_code);
-  console.log('  OK hasPurchased=false, memberCode=', cc.body.memberCode);
+  console.log('== bonus starts locked, 0 shirts purchased ==');
+  let bonusCheck = await api('/api/profile/bonus', { headers: authHeaders(USER_ID) });
+  assert.strictEqual(bonusCheck.body.unlocked, false);
+  assert.strictEqual(bonusCheck.body.shirtsPurchased, 0);
+  console.log('  OK unlocked=false, shirtsPurchased=0');
+
+  console.log('== Яндекс Доставка does not require ФИО, СДЭК does ==');
+  const yandexNoName = await api('/api/orders', {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({
+      productId: product.id,
+      size: 'M',
+      color: 'Navy',
+      deliveryMethod: 'yandex',
+      phone: '+7 900 000 00 00',
+      pvzAddress: 'Москва, ПВЗ Яндекс',
+    }),
+  });
+  assert.strictEqual(yandexNoName.status, 200, 'Yandex delivery should not require recipientName');
+  assert.strictEqual(yandexNoName.body.order.recipientName, null);
+  console.log('  OK yandex order created without ФИО');
+
+  const cdekNoName = await api('/api/orders', {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({
+      productId: product.id,
+      size: 'M',
+      color: 'Navy',
+      deliveryMethod: 'cdek',
+      phone: '+7 900 000 00 00',
+      pvzAddress: 'Москва, ПВЗ СДЭК',
+    }),
+  });
+  assert.strictEqual(cdekNoName.status, 400, 'СДЭК should still require recipientName');
+  assert.strictEqual(cdekNoName.body.error, 'missing_delivery_details');
+  console.log('  OK cdek order without ФИО is rejected');
 
   console.log('== invalid order rejected (bad size) ==');
   const badOrder = await api('/api/orders', {
@@ -346,11 +379,12 @@ async function main() {
         ...deliveryFields({ deliveryMethod: i % 2 === 0 ? 'cdek' : 'yandex' }),
       }),
     });
+    const isYandex = i % 2 === 1;
     assert.strictEqual(created.status, 200);
     const orderId = created.body.order.id;
     assert.strictEqual(created.body.order.status, 'pending');
     assert.strictEqual(created.body.order.color, 'Navy');
-    assert.strictEqual(created.body.order.recipientName, 'Иван Иванов');
+    assert.strictEqual(created.body.order.recipientName, isYandex ? null : 'Иван Иванов');
     assert.strictEqual(created.body.order.pvzAddress, 'Москва, ул. Тестовая, д. 1, ПВЗ СДЭК');
     const { payment } = created.body.order;
     assert.ok(
@@ -363,7 +397,11 @@ async function main() {
     const notifyText = lastMessageTo(ADMIN_ID);
     assert.ok(notifyText && notifyText.includes(`заказ #${orderId}`), 'admin should be notified of new order');
     assert.ok(notifyText.includes('Цвет: Navy'), 'admin notification must include the chosen color');
-    assert.ok(notifyText.includes('ФИО получателя: Иван Иванов'), 'admin notification must include recipient name');
+    if (isYandex) {
+      assert.ok(!notifyText.includes('ФИО получателя:'), 'yandex order notification should omit ФИО entirely');
+    } else {
+      assert.ok(notifyText.includes('ФИО получателя: Иван Иванов'), 'admin notification must include recipient name');
+    }
     assert.ok(notifyText.includes('Телефон: +7 900 000 00 00'), 'admin notification must include phone');
     assert.ok(notifyText.includes('Адрес ПВЗ:'), 'admin notification must include pickup address');
     assert.ok(notifyText.includes(payment.phone), 'admin notification must include the assigned payment requisite');
@@ -373,7 +411,6 @@ async function main() {
     assert.strictEqual(ordersModel.getById(orderId).status, 'paid');
     const buyerNotice = lastMessageTo(USER_ID);
     assert.ok(buyerNotice.includes('оплачен'), 'buyer should get paid confirmation');
-    if (i === 0) assert.ok(buyerNotice.includes('первая покупка'), 'first purchase note expected');
     if (i === 2) assert.ok(buyerNotice.includes('разблокирована'), 'bonus unlock note expected on 3rd');
     paidOrderIds.push(orderId);
   }
@@ -410,11 +447,6 @@ async function main() {
   assert.ok(lastMessageTo(USER_ID).includes('получен'), 'buyer should be notified of delivery');
   assert.ok(lastEditedTextTo(ADMIN_ID).includes('📬 Получен'));
   console.log('  OK shipped -> received flow works, skipping a step is blocked');
-
-  console.log('== club-card hasPurchased flips true after first purchase ==');
-  cc = await api('/api/profile/club-card', { headers: authHeaders(USER_ID) });
-  assert.strictEqual(cc.body.hasPurchased, true);
-  console.log('  OK hasPurchased=true');
 
   console.log('== bonus unlocked after 3rd purchase, discount applied on next order ==');
   const bonus = await api('/api/profile/bonus', { headers: authHeaders(USER_ID) });
@@ -487,6 +519,41 @@ async function main() {
   const yandexPaidCount = await assertFilterCount('paid', 'yandex');
   assert.notStrictEqual(cdekPaidCount, yandexPaidCount, 'delivery-method filter should actually narrow results');
   console.log('  OK filter menu returns correct counts for every status + delivery combination');
+
+  console.log('== receipt upload forwards the photo to admins ==');
+  const receiptOrderId = paidOrderIds[0];
+  const tinyPngBase64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  const receiptRes = await api(`/api/orders/${receiptOrderId}/receipt`, {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({ imageBase64: tinyPngBase64 }),
+  });
+  assert.strictEqual(receiptRes.status, 200);
+  const receiptPhotoCall = apiCalls.filter((c) => c.method === 'sendPhoto').slice(-1)[0];
+  assert.ok(receiptPhotoCall, 'expected a sendPhoto call forwarding the receipt');
+  assert.strictEqual(String(receiptPhotoCall.payload.chat_id), String(ADMIN_ID));
+  assert.ok(receiptPhotoCall.payload.caption.includes(`#${receiptOrderId}`), 'caption should reference the order id');
+  console.log('  OK receipt forwarded to admin with order caption');
+
+  console.log('== receipt upload rejects invalid image data ==');
+  const badReceipt = await api(`/api/orders/${receiptOrderId}/receipt`, {
+    method: 'POST',
+    headers: authHeaders(USER_ID),
+    body: JSON.stringify({ imageBase64: 'not-an-image' }),
+  });
+  assert.strictEqual(badReceipt.status, 400);
+  assert.strictEqual(badReceipt.body.error, 'invalid_receipt_image');
+  console.log('  OK invalid receipt image rejected');
+
+  console.log("== receipt upload rejects another user's order ==");
+  const wrongUserReceipt = await api(`/api/orders/${receiptOrderId}/receipt`, {
+    method: 'POST',
+    headers: authHeaders(USER2_ID),
+    body: JSON.stringify({ imageBase64: tinyPngBase64 }),
+  });
+  assert.strictEqual(wrongUserReceipt.status, 404);
+  console.log('  OK cross-user receipt upload rejected');
 
   console.log('== admin can list all users ==');
   await sendCallback(ADMIN_ID, 'admin:list_users');

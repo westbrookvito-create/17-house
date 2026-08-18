@@ -13,7 +13,8 @@ function createServer() {
       origin: config.corsOrigin.includes('*') ? true : config.corsOrigin,
     }),
   );
-  app.use(express.json());
+  // Лимит поднят с дефолтных 100kb — сюда попадают base64-фото чеков оплаты.
+  app.use(express.json({ limit: '8mb' }));
 
   app.get('/health', (req, res) => res.json({ ok: true, club: config.clubName }));
 

@@ -101,8 +101,29 @@ a {
   animation: fade-in 0.18s ease-out;
 }
 
-/* Бургер-меню (Профиль / Бонусы / Визитка клуба) — единственная навигация
-   вне главной страницы теперь, раз нижней панели больше нет. */
+/* Каталог — тот же hero.jpg, что на главной, но сильно затемнённый и во
+   всю секцию, просто фоновая текстура за карточками товаров. */
+.catalog-section {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.catalog-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(13, 9, 6, 0.88) 0%, rgba(13, 9, 6, 0.94) 100%);
+  pointer-events: none;
+}
+
+.catalog-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Бургер-меню (Профиль / Бонусы) — единственная навигация вне главной
+   страницы теперь, раз нижней панели больше нет. */
 .menu-backdrop {
   position: fixed;
   inset: 0;

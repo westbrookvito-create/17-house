@@ -4,13 +4,12 @@ import Logo from '../components/Logo';
 import IconMenu from '../components/icons/Menu';
 import IconUser from '../components/icons/User';
 import IconGift from '../components/icons/Gift';
-import IconCard from '../components/icons/Card';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { hapticSuccess, hapticError, hapticSelect, copyToClipboard } from '../telegram';
 
 const DELIVERY_OPTIONS = [
-  { value: 'yandex', label: 'Яндекс Доставка' },
+  { value: 'yandex', label: 'Яндекс Доставка', note: 'бесплатно' },
   { value: 'cdek', label: 'СДЭК' },
 ];
 
@@ -80,7 +79,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-section" ref={catalogRef}>
+      <section className="home-section catalog-section" ref={catalogRef} style={{ backgroundImage: 'url(/hero.jpg)' }}>
         <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
           Каталог
         </h3>
@@ -108,10 +107,6 @@ export default function Home() {
               <IconGift size={20} />
               Бонусы
             </button>
-            <button className="menu-item" onClick={() => goTo('/card')}>
-              <IconCard size={20} />
-              Визитка клуба
-            </button>
           </div>
         </>
       )}
@@ -126,14 +121,21 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState(null);
   const [form, setForm] = useState({ deliveryMethod: '', recipientName: '', phone: '', pvzAddress: '' });
+  const [receiptSent, setReceiptSent] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const receiptInputRef = useRef(null);
 
   const colors = product.colors || [];
   const hasNamedColors = colors.some((c) => c.name);
   const activeColor = colors[colorIndex];
 
   const finalPrice = bonusUnlocked ? Math.round(product.price * 0.9) : product.price;
+  const needsRecipientName = form.deliveryMethod !== 'yandex';
   const formValid =
-    form.deliveryMethod && form.recipientName.trim() && form.phone.trim() && form.pvzAddress.trim();
+    form.deliveryMethod &&
+    (!needsRecipientName || form.recipientName.trim()) &&
+    form.phone.trim() &&
+    form.pvzAddress.trim();
 
   function updateForm(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -168,6 +170,29 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     await copyToClipboard(order.payment.phone);
     hapticSuccess();
     toast('Номер скопирован');
+  }
+
+  function handleAttachReceiptClick() {
+    receiptInputRef.current?.click();
+  }
+
+  async function handleReceiptFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !order) return;
+    setUploadingReceipt(true);
+    try {
+      const imageBase64 = await fileToBase64(file);
+      await api.uploadReceipt(order.id, imageBase64);
+      setReceiptSent(true);
+      hapticSuccess();
+      toast('Чек отправлен');
+    } catch {
+      hapticError();
+      toast('Не удалось отправить чек. Попробуйте ещё раз.');
+    } finally {
+      setUploadingReceipt(false);
+    }
   }
 
   const galleryImages = activeColor?.photos || product.imageUrls || [];
@@ -253,16 +278,19 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
                 onClick={() => updateForm('deliveryMethod', opt.value)}
               >
                 {opt.label}
+                {opt.note ? ` · ${opt.note}` : ''}
               </button>
             ))}
           </div>
 
-          <input
-            className="input"
-            placeholder="ФИО (как в переводе, которым будете платить)"
-            value={form.recipientName}
-            onChange={(e) => updateForm('recipientName', e.target.value)}
-          />
+          {needsRecipientName && (
+            <input
+              className="input"
+              placeholder="ФИО (как в переводе, которым будете платить)"
+              value={form.recipientName}
+              onChange={(e) => updateForm('recipientName', e.target.value)}
+            />
+          )}
           <input
             className="input"
             placeholder="Номер телефона"
@@ -310,10 +338,34 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
           <button className="btn btn-primary" onClick={handleCopyPhone}>
             Скопировать номер
           </button>
+
+          <input
+            ref={receiptInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleReceiptFileChange}
+          />
+          <button
+            className="btn btn-outline"
+            disabled={uploadingReceipt || receiptSent}
+            onClick={handleAttachReceiptClick}
+          >
+            {receiptSent ? '✅ Чек отправлен' : uploadingReceipt ? 'Отправляем…' : '📎 Приложить чек'}
+          </button>
         </div>
       )}
     </div>
   );
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function ProductGallery({ images, alt }) {

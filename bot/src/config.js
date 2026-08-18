@@ -36,7 +36,6 @@ module.exports = {
   adminIds,
   webappUrl: process.env.WEBAPP_URL || '',
   port: Number(process.env.PORT || 3000),
-  clubChannelUrl: process.env.CLUB_CHANNEL_URL || '',
   clubName: process.env.CLUB_NAME || '17 House',
   bonusThreshold: Number(process.env.BONUS_THRESHOLD || 3),
   bonusPercent: Number(process.env.BONUS_PERCENT || 10),

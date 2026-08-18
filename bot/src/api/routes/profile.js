@@ -23,18 +23,6 @@ router.get('/', (req, res) => {
   res.json({ user: serializeUser(req.dbUser) });
 });
 
-router.get('/club-card', (req, res) => {
-  const u = req.dbUser;
-  res.json({
-    memberCode: u.member_code,
-    status: u.status,
-    statusUntil: u.status_until,
-    clubName: config.clubName,
-    channelUrl: config.clubChannelUrl,
-    hasPurchased: u.shirts_purchased >= 1,
-  });
-});
-
 router.get('/bonus', (req, res) => {
   const u = req.dbUser;
   const remaining = Math.max(0, config.bonusThreshold - u.shirts_purchased);

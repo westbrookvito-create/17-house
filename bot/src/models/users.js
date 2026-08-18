@@ -66,8 +66,7 @@ function listAll() {
   return db.prepare(`SELECT * FROM users ORDER BY id DESC`).all();
 }
 
-// Участники клуба — те, кто хотя бы раз купил футболку (тот же критерий,
-// что открывает визитку клуба и доступ в закрытый канал).
+// Участники клуба — те, кто хотя бы раз купил футболку.
 function listMembers() {
   return db.prepare(`SELECT * FROM users WHERE shirts_purchased >= 1 ORDER BY id DESC`).all();
 }
