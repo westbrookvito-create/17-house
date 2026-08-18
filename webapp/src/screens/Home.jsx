@@ -43,7 +43,12 @@ export default function Home() {
       <section className="home-section">
         <div className="topbar" style={{ justifyContent: 'space-between' }}>
           <div style={{ width: 36 }} />
-          <Logo height={36} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Logo height={32} />
+            <h1 className="serif" style={{ fontSize: 22, margin: 0 }}>
+              17 House
+            </h1>
+          </div>
           <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="Меню">
             <IconMenu size={20} />
           </button>
