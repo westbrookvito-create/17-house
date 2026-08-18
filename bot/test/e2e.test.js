@@ -104,6 +104,7 @@ async function sendPhoto(fromId, fileId, opts = {}) {
       { file_id: `${fileId}_large`, file_unique_id: 'b', width: 800, height: 800 },
     ],
   };
+  if (opts.caption) message.caption = opts.caption;
   await bot.handleUpdate({ update_id: updateId++, message });
 }
 
@@ -505,6 +506,37 @@ async function main() {
   assert.ok(statsText.includes('Статистика продаж'));
   assert.ok(statsText.includes('Выручка'));
   console.log('  OK month stats shown');
+
+  console.log('== admin can broadcast a text message to all users ==');
+  await sendCallback(ADMIN_ID, 'admin:broadcast');
+  await sendText(ADMIN_ID, 'Внимание! Новая коллекция уже в каталоге.');
+  assert.ok(lastMessageTo(ADMIN_ID).includes('Предпросмотр рассылки'));
+  const allUsersCount = usersModel.listAll().length;
+  const beforeBroadcastMsgs = apiCalls.filter((c) => c.method === 'sendMessage').length;
+  await sendCallback(ADMIN_ID, 'broadcast:send');
+  const afterBroadcastMsgs = apiCalls.filter((c) => c.method === 'sendMessage').length;
+  assert.strictEqual(
+    afterBroadcastMsgs - beforeBroadcastMsgs,
+    allUsersCount + 1,
+    'should message every registered user plus the admin completion summary',
+  );
+  assert.ok(lastMessageTo(ADMIN_ID).includes('Рассылка завершена'));
+  assert.ok(lastMessageTo(USER_ID).includes('Новая коллекция'));
+  console.log('  OK broadcast text reached', allUsersCount, 'users');
+
+  console.log('== admin can broadcast a photo with caption to all users ==');
+  await sendCallback(ADMIN_ID, 'admin:broadcast');
+  await sendPhoto(ADMIN_ID, 'broadcastPic', { caption: 'Скидка недели -15%' });
+  const beforeBroadcastPhotos = apiCalls.filter((c) => c.method === 'sendPhoto').length;
+  await sendCallback(ADMIN_ID, 'broadcast:send');
+  const afterBroadcastPhotos = apiCalls.filter((c) => c.method === 'sendPhoto').length;
+  assert.strictEqual(
+    afterBroadcastPhotos - beforeBroadcastPhotos,
+    allUsersCount,
+    'photo broadcast should reach every registered user',
+  );
+  assert.ok(lastMessageTo(ADMIN_ID).includes('Рассылка завершена'));
+  console.log('  OK broadcast photo reached', allUsersCount, 'users');
 
   console.log('== contact-manager relay forwards plain text to admin ==');
   const beforeForward = apiCalls.filter((c) => c.method === 'forwardMessage').length;

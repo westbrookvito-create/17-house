@@ -44,6 +44,17 @@ function renderDraftPreview(data) {
   );
 }
 
+function broadcastConfirmKeyboard(total) {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(`📤 Отправить всем (${total})`, 'broadcast:send')],
+    [Markup.button.callback('❌ Отменить', 'broadcast:cancel')],
+  ]).reply_markup;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const STATUS_LABELS = {
   pending: '⏳ Ожидает оплаты',
   paid: '✅ Оплачен',
@@ -244,6 +255,61 @@ function register(bot) {
       Markup.button.callback(`${p.active ? '🟢' : '⚪️'} ${p.name} — ${p.price}₽`, `product:view:${p.id}`),
     ]);
     return ctx.reply('Товары клуба:', Markup.inlineKeyboard(rows));
+  });
+
+  bot.action('admin:broadcast', (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    sessions.set(ctx.from.id, { step: 'broadcast_content', data: {} });
+    ctx.answerCbQuery();
+    return ctx.reply(
+      'Пришлите текст рассылки, или фото с подписью (подпись не обязательна) — уйдёт всем пользователям бота.\n\n' +
+        'Отменить — /cancel.',
+    );
+  });
+
+  bot.action('broadcast:send', async (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    const session = sessions.get(ctx.from.id);
+    if (!session || session.step !== 'broadcast_confirm') return ctx.answerCbQuery();
+    await ctx.answerCbQuery('Отправляю…');
+    await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+
+    const { text, photoFileId } = session.data;
+    sessions.delete(ctx.from.id);
+
+    const recipients = usersModel.listAll();
+    let sent = 0;
+    let failed = 0;
+    for (const u of recipients) {
+      try {
+        if (photoFileId) {
+          // eslint-disable-next-line no-await-in-loop
+          await ctx.telegram.sendPhoto(u.telegram_id, photoFileId, text ? { caption: text } : {});
+        } else {
+          // eslint-disable-next-line no-await-in-loop
+          await ctx.telegram.sendMessage(u.telegram_id, text);
+        }
+        sent++;
+      } catch (err) {
+        failed++;
+        console.error('[broadcast] failed to send to', u.telegram_id, err.message);
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(35); // не упираемся в лимиты Telegram при рассылке многим пользователям
+    }
+
+    return ctx.reply(
+      `✅ Рассылка завершена: отправлено ${sent} из ${recipients.length}` +
+        (failed ? `, не доставлено ${failed} (пользователь заблокировал бота и т.п.)` : '') +
+        '.',
+    );
+  });
+
+  bot.action('broadcast:cancel', (ctx) => {
+    if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
+    sessions.delete(ctx.from.id);
+    ctx.answerCbQuery('Отменено');
+    return ctx.reply('Рассылка отменена.');
   });
 
   bot.action('admin:menu', (ctx) => {
@@ -517,7 +583,22 @@ function register(bot) {
   bot.on('photo', async (ctx, next) => {
     if (!isAdminCtx(ctx)) return next();
     const session = sessions.get(ctx.from.id);
-    if (!session || session.step !== 'color_photos' || !session.currentColor) return next();
+    if (!session) return next();
+
+    if (session.step === 'broadcast_content') {
+      const photos = ctx.message.photo;
+      const fileId = photos[photos.length - 1].file_id;
+      session.data = { photoFileId: fileId, text: ctx.message.caption || '' };
+      session.step = 'broadcast_confirm';
+      sessions.set(ctx.from.id, session);
+      const total = usersModel.listAll().length;
+      return ctx.replyWithPhoto(fileId, {
+        caption: session.data.text || undefined,
+        reply_markup: broadcastConfirmKeyboard(total),
+      });
+    }
+
+    if (session.step !== 'color_photos' || !session.currentColor) return next();
 
     const photos = ctx.message.photo;
     const fileId = photos[photos.length - 1].file_id;
@@ -538,6 +619,14 @@ function register(bot) {
     if (text.startsWith('/')) return next(); // не перехватываем другие команды в середине диалога
 
     switch (session.step) {
+      case 'broadcast_content': {
+        session.data = { text, photoFileId: null };
+        session.step = 'broadcast_confirm';
+        sessions.set(ctx.from.id, session);
+        const total = usersModel.listAll().length;
+        return ctx.reply(`Предпросмотр рассылки:\n\n${text}`, { reply_markup: broadcastConfirmKeyboard(total) });
+      }
+
       case 'name':
         session.data.name = text;
         session.step = 'description';
