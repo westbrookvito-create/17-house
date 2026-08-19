@@ -13,7 +13,10 @@ const DELIVERY_OPTIONS = [
   { value: 'cdek', label: 'СДЭК' },
 ];
 
-const BURGER_HIDE_DELAY_MS = 1600;
+// Насколько нужно проскроллить вниз от верха страницы, прежде чем бургер
+// вообще начинает прятаться — у самого верха он всегда виден, чтобы не
+// мигал туда-сюда от долей пикселя скролла.
+const BURGER_HIDE_THRESHOLD_PX = 40;
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,7 +28,6 @@ export default function Home() {
   const navigate = useNavigate();
   const catalogRef = useRef(null);
   const scrollRef = useRef(null);
-  const burgerHideTimer = useRef(null);
 
   useEffect(() => {
     Promise.all([api.getProducts(), api.getProfile()])
@@ -36,23 +38,23 @@ export default function Home() {
       .catch(() => setError('Не удалось загрузить каталог. Откройте приложение из Telegram-бота.'));
   }, []);
 
-  // Бургер виден только пока листаешь страницу, и ещё 1.6с после — не
-  // висит постоянно, а всплывает по факту скролла (в любом месте страницы)
-  // и сам гаснет, когда скролл затих.
+  // Бургер выезжает как обычный сайтовый хедер: виден у самого верха,
+  // прячется при скролле вниз, снова выезжает, стоит потянуть вверх —
+  // работает и на главной, и в каталоге, это один общий скролл-контейнер.
   useEffect(() => {
-    function armHideTimer() {
-      setBurgerVisible(true);
-      clearTimeout(burgerHideTimer.current);
-      burgerHideTimer.current = setTimeout(() => setBurgerVisible(false), BURGER_HIDE_DELAY_MS);
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    let lastTop = el.scrollTop;
+
+    function handleScroll() {
+      const top = el.scrollTop;
+      const scrollingUp = top < lastTop;
+      setBurgerVisible(top <= BURGER_HIDE_THRESHOLD_PX || scrollingUp);
+      lastTop = top;
     }
 
-    armHideTimer();
-    const el = scrollRef.current;
-    el?.addEventListener('scroll', armHideTimer, { passive: true });
-    return () => {
-      el?.removeEventListener('scroll', armHideTimer);
-      clearTimeout(burgerHideTimer.current);
-    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
   function scrollToCatalog() {

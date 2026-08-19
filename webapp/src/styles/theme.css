@@ -238,11 +238,13 @@ a {
   display: flex;
   color: var(--text);
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transform: translateY(0);
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .burger-fixed.hidden {
   opacity: 0;
+  transform: translateY(-140%);
   pointer-events: none;
 }
 
