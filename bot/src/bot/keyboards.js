@@ -1,12 +1,14 @@
 const { Markup } = require('telegraf');
 const config = require('../config');
 
+const MANAGER_USERNAME = 'house17manager';
+
 function openAppKeyboard() {
   const rows = [];
   if (config.webappUrl) {
     rows.push([Markup.button.webApp('🏛 Открыть 17 House', config.webappUrl)]);
   }
-  rows.push([Markup.button.callback('📏 Узнать размер', 'size_chart')]);
+  rows.push([Markup.button.url('❓ Задать вопрос', `https://t.me/${MANAGER_USERNAME}`)]);
   return Markup.inlineKeyboard(rows);
 }
 

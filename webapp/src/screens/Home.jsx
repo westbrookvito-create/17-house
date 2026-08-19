@@ -278,7 +278,7 @@ function ProductBlock({ item, bonusUnlocked, toast }) {
           {needsRecipientName && (
             <input
               className="input"
-              placeholder="ФИО (как в переводе, которым будете платить)"
+              placeholder="ФИО"
               value={form.recipientName}
               onChange={(e) => updateForm('recipientName', e.target.value)}
             />

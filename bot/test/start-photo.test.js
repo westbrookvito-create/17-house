@@ -121,14 +121,18 @@ async function main() {
   assert.ok(textCall, 'expected a fallback sendMessage after the photo failed');
   console.log('  OK falls back to text when the photo send throws');
 
-  console.log('== welcome message attaches an "Узнать размер" button ==');
+  console.log('== welcome message attaches a "Задать вопрос" button linking to the manager ==');
   const startPhotoCall = calls.find((c) => c.method === 'sendPhoto');
   const buttons = startPhotoCall.payload.reply_markup.inline_keyboard.flat();
   assert.ok(
-    buttons.some((b) => b.text.includes('Узнать размер') && b.callback_data === 'size_chart'),
-    'Open App keyboard must include the size chart button',
+    buttons.some((b) => b.text.includes('Задать вопрос') && b.url === 'https://t.me/house17manager'),
+    'Open App keyboard must include a direct link to the manager',
   );
-  console.log('  OK size chart button present');
+  assert.ok(
+    !buttons.some((b) => b.callback_data === 'size_chart'),
+    'the old "Узнать размер" callback button should be gone',
+  );
+  console.log('  OK "Задать вопрос" button present, size chart button removed');
 
   console.log('== "Узнать размер" button sends 2 size chart photos ==');
   calls.length = 0;

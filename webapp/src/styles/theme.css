@@ -101,19 +101,36 @@ a {
   animation: fade-in 0.18s ease-out;
 }
 
-/* Каталог — тот же hero.jpg, что на главной, но сильно затемнённый и во
-   всю секцию, просто фоновая текстура за карточками товаров. */
+/* Каталог — тот же hero.jpg, что на главной, но сильно затемнённый, просто
+   фоновая текстура за карточками товаров. Секция растягивается по высоте
+   контента (с 2+ товарами — на несколько экранов), а background-size: cover
+   прямо на секции масштабировал бы фото под ВСЮ эту высоту и почти обрезал
+   его до одного цвета — картинка будто "пропадала". Поэтому фото — на
+   ::before фиксированной высоты (один экран) у верхнего края секции, а
+   не растягивается вместе с ней; ниже — просто плавный переход в тёмный фон. */
 .catalog-section {
   position: relative;
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
 }
 
 .catalog-section::before {
   content: '';
   position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+.catalog-section::after {
+  content: '';
+  position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(13, 9, 6, 0.88) 0%, rgba(13, 9, 6, 0.94) 100%);
+  background: linear-gradient(180deg, rgba(13, 9, 6, 0.88) 0%, rgba(13, 9, 6, 0.94) 40%, rgba(13, 9, 6, 0.98) 100%);
   pointer-events: none;
 }
 
