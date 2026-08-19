@@ -80,15 +80,21 @@ function register(bot) {
     return sendWelcome(ctx, updated);
   });
 
+  const sizeChartCaption =
+    `📏 <b>Таблица размеров ${config.clubName}</b>\n\n` +
+    `Сравните замеры на фото со своими — если между двумя размерами, берите больше: крой свободный. ` +
+    `Остались вопросы — жмите «Связаться с менеджером» в приложении клуба.`;
+
   // Таблица размеров — те же 2 картинки, что и hero.jpg, отдаются прямо
   // с задеплоенного мини-аппа (webapp/public/size-chart-1.jpg, size-chart-2.jpg).
+  // Подпись Telegram показывает под первым фото в группе.
   async function sendSizeChart(ctx) {
     if (!config.webappUrl) {
       return ctx.reply('Таблица размеров временно недоступна.');
     }
     try {
       return await ctx.replyWithMediaGroup([
-        { type: 'photo', media: `${config.webappUrl}/size-chart-1.jpg` },
+        { type: 'photo', media: `${config.webappUrl}/size-chart-1.jpg`, caption: sizeChartCaption, parse_mode: 'HTML' },
         { type: 'photo', media: `${config.webappUrl}/size-chart-2.jpg` },
       ]);
     } catch (err) {

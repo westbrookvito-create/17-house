@@ -138,7 +138,8 @@ async function main() {
   assert.strictEqual(mediaGroupCall.payload.media.length, 2);
   assert.strictEqual(mediaGroupCall.payload.media[0].media, 'https://example-club.netlify.app/size-chart-1.jpg');
   assert.strictEqual(mediaGroupCall.payload.media[1].media, 'https://example-club.netlify.app/size-chart-2.jpg');
-  console.log('  OK 2 size chart photos sent via callback button');
+  assert.ok(mediaGroupCall.payload.media[0].caption?.includes('Таблица размеров'), 'first photo should carry a caption');
+  console.log('  OK 2 size chart photos sent via callback button, with caption');
 
   console.log('== /size command also sends the size chart ==');
   calls.length = 0;
