@@ -5,7 +5,9 @@ import IconGear from '../components/icons/Gear';
 import IconMessage from '../components/icons/Message';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
-import { getTelegramUser } from '../telegram';
+import { getTelegramUser, openTelegramLink } from '../telegram';
+
+const MANAGER_USERNAME = 'house17manager';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -27,10 +29,7 @@ export default function Profile() {
   }, []);
 
   function handleContactManager() {
-    toast('Открываем чат с менеджером…');
-    setTimeout(() => {
-      window.Telegram?.WebApp?.close?.();
-    }, 900);
+    openTelegramLink(`https://t.me/${MANAGER_USERNAME}`);
   }
 
   return (

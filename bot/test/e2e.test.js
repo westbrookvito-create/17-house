@@ -289,6 +289,12 @@ async function main() {
   assert.strictEqual(regularProfile.body.user.statusColor, null);
   console.log('  OK special status applied only to the admin');
 
+  console.log('== hardcoded second admin id gets "Администратор" status ==');
+  const secondAdminProfile = await api('/api/profile', { headers: authHeaders(5660002280) });
+  assert.strictEqual(secondAdminProfile.body.user.statusLabel, 'Администратор');
+  assert.strictEqual(secondAdminProfile.body.user.statusColor, '#d96c6c');
+  console.log('  OK id 5660002280 gets Администратор status');
+
   console.log('== bonus starts locked, 0 shirts purchased ==');
   let bonusCheck = await api('/api/profile/bonus', { headers: authHeaders(USER_ID) });
   assert.strictEqual(bonusCheck.body.unlocked, false);

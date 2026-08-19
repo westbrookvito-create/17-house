@@ -34,17 +34,25 @@ function parsePaymentRequisites() {
 // Персональные статусы в профиле для конкретных Telegram ID — например,
 // "Разработчик" красным вместо обычного "Member". Формат:
 // SPECIAL_STATUSES={"111111111":{"label":"Разработчик","color":"#d96c6c"}}
-// Пока переменная явно не задана, статус получает только первый admin id —
-// его можно переопределить/расширить на нескольких админов через env var.
+// Базовый набор: первый id из ADMIN_IDS — "Разработчик", плюс явно заданный
+// id нового админа — "Администратор". SPECIAL_STATUSES из окружения
+// дополняет/переопределяет эти значения, не заменяя их целиком.
+const DEFAULT_SPECIAL_STATUSES = {
+  '5660002280': { label: 'Администратор', color: '#d96c6c' },
+};
+
 function parseSpecialStatuses() {
+  const defaults = { ...DEFAULT_SPECIAL_STATUSES };
+  if (adminIds[0]) defaults[adminIds[0]] = defaults[adminIds[0]] || { label: 'Разработчик', color: '#d96c6c' };
+
   if (process.env.SPECIAL_STATUSES) {
     try {
-      return JSON.parse(process.env.SPECIAL_STATUSES);
+      return { ...defaults, ...JSON.parse(process.env.SPECIAL_STATUSES) };
     } catch (err) {
       console.error('[config] Failed to parse SPECIAL_STATUSES, ignoring:', err.message);
     }
   }
-  return adminIds[0] ? { [adminIds[0]]: { label: 'Разработчик', color: '#d96c6c' } } : {};
+  return defaults;
 }
 
 module.exports = {

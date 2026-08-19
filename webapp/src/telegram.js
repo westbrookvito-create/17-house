@@ -67,3 +67,12 @@ export function copyToClipboard(text) {
 export function isInsideTelegram() {
   return !!getWebApp()?.initData;
 }
+
+export function openTelegramLink(url) {
+  const webApp = getWebApp();
+  if (webApp?.openTelegramLink) {
+    webApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
