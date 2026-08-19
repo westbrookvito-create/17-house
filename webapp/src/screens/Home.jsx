@@ -312,8 +312,8 @@ function ProductBlock({ item, bonusUnlocked, toast }) {
             Заказ #{order.id} оформлен ✓
           </h3>
           <p className="muted">
-            Переведите {order.price} ₽ по номеру телефона на реквизиты ниже. После поступления оплаты мы напишем в
-            этот чат.
+            Переведите {order.price} ₽ по номеру телефона на реквизиты ниже, затем приложите скриншот чека — только
+            после этого мы увидим ваш заказ и подтвердим оплату.
           </p>
           <div className="row-between">
             <span className="muted">Телефон</span>
@@ -327,7 +327,7 @@ function ProductBlock({ item, bonusUnlocked, toast }) {
             <span className="muted">Банк</span>
             <span style={{ color: 'var(--text)' }}>{order.payment.bank}</span>
           </div>
-          <button className="btn btn-primary" onClick={handleCopyPhone}>
+          <button className="btn btn-outline" onClick={handleCopyPhone}>
             Скопировать номер
           </button>
 
@@ -339,7 +339,7 @@ function ProductBlock({ item, bonusUnlocked, toast }) {
             onChange={handleReceiptFileChange}
           />
           <button
-            className="btn btn-outline"
+            className="btn btn-primary"
             disabled={uploadingReceipt || receiptSent}
             onClick={handleAttachReceiptClick}
           >

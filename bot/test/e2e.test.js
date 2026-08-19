@@ -27,6 +27,9 @@ const ADMIN_ID = 999999;
 const USER_ID = 555555;
 const USER2_ID = 666666;
 
+const TINY_PNG_BASE64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 const bot = require('../src/bot');
 const usersModel = require('../src/models/users');
 const productsModel = require('../src/models/products');
@@ -64,6 +67,16 @@ ApiClient.prototype.callApi = async function callApi(method, payload) {
       return true;
     case 'editMessageText':
       return { message_id: 1, chat: { id: 1 }, date: 0, text: payload.text || '' };
+    case 'editMessageCaption':
+      return { message_id: 1, chat: { id: 1 }, date: 0, caption: payload.caption || '' };
+    case 'sendPhoto':
+      return {
+        message_id: apiCalls.length,
+        chat: { id: payload.chat_id },
+        date: 0,
+        photo: [{ file_id: 'x', file_unique_id: 'y', width: 100, height: 100 }],
+        caption: payload.caption || '',
+      };
     case 'getFile':
       return { file_id: payload.file_id, file_unique_id: 'x', file_path: 'photos/fake.jpg' };
     case 'sendDocument':
@@ -111,15 +124,24 @@ async function sendPhoto(fromId, fileId, opts = {}) {
 }
 
 async function sendCallback(fromId, data, opts = {}) {
+  const message = {
+    message_id: messageId++,
+    chat: { id: fromId, type: 'private' },
+    date: Math.floor(Date.now() / 1000),
+  };
+  // Заказы теперь приходят админу как фото с подписью (чек + инфа) — кнопки
+  // подтверждения/отмены висят на подписи, а не на обычном тексте, поэтому
+  // тесты, эмулирующие нажатие с такой карточки, помечают message.photo.
+  if (opts.photo) {
+    message.photo = [{ file_id: 'x', file_unique_id: 'y', width: 100, height: 100 }];
+    message.caption = 'placeholder';
+  } else {
+    message.text = 'placeholder';
+  }
   const callback_query = {
     id: String(updateId),
     from: baseFrom(fromId, opts),
-    message: {
-      message_id: messageId++,
-      chat: { id: fromId, type: 'private' },
-      date: Math.floor(Date.now() / 1000),
-      text: 'placeholder',
-    },
+    message,
     chat_instance: 'x',
     data,
   };
@@ -145,6 +167,18 @@ function lastEditedTextTo(chatId) {
     (c) => c.method === 'editMessageText' && String(c.payload.chat_id) === String(chatId),
   );
   return calls[calls.length - 1]?.payload.text;
+}
+
+function lastEditedCaptionTo(chatId) {
+  const calls = apiCalls.filter(
+    (c) => c.method === 'editMessageCaption' && String(c.payload.chat_id) === String(chatId),
+  );
+  return calls[calls.length - 1]?.payload.caption;
+}
+
+function lastPhotoCaptionTo(chatId) {
+  const calls = apiCalls.filter((c) => c.method === 'sendPhoto' && String(c.payload.chat_id) === String(chatId));
+  return calls[calls.length - 1]?.payload.caption;
 }
 
 async function main() {
@@ -407,10 +441,17 @@ async function main() {
       'assigned payment requisite must be one of the configured 3',
     );
 
+    // Админ не узнаёт о заказе сразу — только когда покупатель прикладывает чек:
+    // фото уходит с полной инфой о заказе подписью и кнопками подтверждения.
     // eslint-disable-next-line no-await-in-loop
-    await new Promise((r) => setTimeout(r, 30)); // let the fire-and-forget admin notification run
-    const notifyText = lastMessageTo(ADMIN_ID);
-    assert.ok(notifyText && notifyText.includes(`заказ #${orderId}`), 'admin should be notified of new order');
+    const receiptUploadRes = await api(`/api/orders/${orderId}/receipt`, {
+      method: 'POST',
+      headers: authHeaders(USER_ID),
+      body: JSON.stringify({ imageBase64: TINY_PNG_BASE64 }),
+    });
+    assert.strictEqual(receiptUploadRes.status, 200, 'receipt upload should succeed');
+    const notifyText = lastPhotoCaptionTo(ADMIN_ID);
+    assert.ok(notifyText && notifyText.includes(`заказ #${orderId}`), 'admin should be notified of new order via receipt photo caption');
     assert.ok(notifyText.includes('Цвет: Navy'), 'admin notification must include the chosen color');
     if (isYandex) {
       assert.ok(!notifyText.includes('ФИО получателя:'), 'yandex order notification should omit ФИО entirely');
@@ -422,17 +463,17 @@ async function main() {
     assert.ok(notifyText.includes(payment.phone), 'admin notification must include the assigned payment requisite');
 
     // eslint-disable-next-line no-await-in-loop
-    await sendCallback(ADMIN_ID, `confirm_order:${orderId}`);
+    await sendCallback(ADMIN_ID, `confirm_order:${orderId}`, { photo: true });
     assert.strictEqual(ordersModel.getById(orderId).status, 'paid');
     const buyerNotice = lastMessageTo(USER_ID);
     assert.ok(buyerNotice.includes('оплачен'), 'buyer should get paid confirmation');
     if (i === 2) assert.ok(buyerNotice.includes('разблокирована'), 'bonus unlock note expected on 3rd');
     paidOrderIds.push(orderId);
   }
-  console.log('  OK 3 orders placed + confirmed, notifications include delivery + payment info');
+  console.log('  OK 3 orders placed, receipts uploaded, admin notified via photo caption + confirmed');
 
   console.log('== confirming an order keeps its full details visible (does not wipe them) ==');
-  const confirmedEditText = lastEditedTextTo(ADMIN_ID);
+  const confirmedEditText = lastEditedCaptionTo(ADMIN_ID);
   assert.ok(confirmedEditText.includes('✅ Оплачен'), 'edited message should show the new status label');
   assert.ok(confirmedEditText.includes('ФИО получателя: Иван Иванов'), 'recipient name must stay visible');
   assert.ok(confirmedEditText.includes('Адрес ПВЗ:'), 'pickup address must stay visible');
@@ -440,27 +481,27 @@ async function main() {
 
   console.log('== admin advances an order through shipped -> received, with guards ==');
   const trackedOrderId = paidOrderIds[0];
-  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`);
+  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`, { photo: true });
   assert.strictEqual(
     ordersModel.getById(trackedOrderId).status,
     'paid',
     'cannot mark received before shipped',
   );
 
-  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`);
+  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`, { photo: true });
   assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'shipped');
   assert.ok(lastMessageTo(USER_ID).includes('отправлен'), 'buyer should be notified of shipping');
-  const editedAfterShip = lastEditedTextTo(ADMIN_ID);
+  const editedAfterShip = lastEditedCaptionTo(ADMIN_ID);
   assert.ok(editedAfterShip.includes('📦 Отправлен'));
   assert.ok(editedAfterShip.includes('Адрес ПВЗ:'), 'shipped card must still show pickup address');
 
-  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`);
+  await sendCallback(ADMIN_ID, `ship_order:${trackedOrderId}`, { photo: true });
   assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'shipped', 'double-ship must be a no-op');
 
-  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`);
+  await sendCallback(ADMIN_ID, `receive_order:${trackedOrderId}`, { photo: true });
   assert.strictEqual(ordersModel.getById(trackedOrderId).status, 'received');
   assert.ok(lastMessageTo(USER_ID).includes('получен'), 'buyer should be notified of delivery');
-  assert.ok(lastEditedTextTo(ADMIN_ID).includes('📬 Получен'));
+  assert.ok(lastEditedCaptionTo(ADMIN_ID).includes('📬 Получен'));
   console.log('  OK shipped -> received flow works, skipping a step is blocked');
 
   console.log('== bonus unlocked after 3rd purchase, discount applied on next order ==');
@@ -535,14 +576,12 @@ async function main() {
   assert.notStrictEqual(cdekPaidCount, yandexPaidCount, 'delivery-method filter should actually narrow results');
   console.log('  OK filter menu returns correct counts for every status + delivery combination');
 
-  console.log('== receipt upload forwards the photo to admins ==');
+  console.log('== a second receipt upload on the same order still forwards fine ==');
   const receiptOrderId = paidOrderIds[0];
-  const tinyPngBase64 =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
   const receiptRes = await api(`/api/orders/${receiptOrderId}/receipt`, {
     method: 'POST',
     headers: authHeaders(USER_ID),
-    body: JSON.stringify({ imageBase64: tinyPngBase64 }),
+    body: JSON.stringify({ imageBase64: TINY_PNG_BASE64 }),
   });
   assert.strictEqual(receiptRes.status, 200);
   const receiptPhotoCall = apiCalls.filter((c) => c.method === 'sendPhoto').slice(-1)[0];
@@ -565,7 +604,7 @@ async function main() {
   const wrongUserReceipt = await api(`/api/orders/${receiptOrderId}/receipt`, {
     method: 'POST',
     headers: authHeaders(USER2_ID),
-    body: JSON.stringify({ imageBase64: tinyPngBase64 }),
+    body: JSON.stringify({ imageBase64: TINY_PNG_BASE64 }),
   });
   assert.strictEqual(wrongUserReceipt.status, 404);
   console.log('  OK cross-user receipt upload rejected');

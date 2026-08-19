@@ -502,13 +502,15 @@ function register(bot) {
   // Карточка заказа в чате всегда переписывается на актуальную (полные детали +
   // новый статус + доступные дальше кнопки), а не стирается коротким текстом —
   // иначе адрес ПВЗ и реквизиты пропадали бы из вида сразу после подтверждения.
+  // Заказы теперь приходят вместе с чеком (фото + подпись), поэтому карточка
+  // может быть как обычным текстовым сообщением (история заказов), так и
+  // подписью к фото — редактируем тем способом, который подходит конкретному сообщению.
   async function refreshOrderMessage(ctx, order, user) {
-    await ctx
-      .editMessageText(renderOrderText(order, user), {
-        parse_mode: 'HTML',
-        reply_markup: orderActionsKeyboard(order),
-      })
-      .catch(() => {});
+    const text = renderOrderText(order, user);
+    const options = { parse_mode: 'HTML', reply_markup: orderActionsKeyboard(order) };
+    const isPhotoMessage = !!ctx.callbackQuery?.message?.photo;
+    const edit = isPhotoMessage ? ctx.editMessageCaption(text, options) : ctx.editMessageText(text, options);
+    await edit.catch(() => {});
   }
 
   bot.action(/^confirm_order:(\d+)$/, async (ctx) => {

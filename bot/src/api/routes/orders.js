@@ -67,11 +67,14 @@ router.post('/', async (req, res) => {
 
   res.json({ order });
 
-  notifyAdmins(order, user).catch((err) => console.error('[orders] admin notify failed', err.message));
+  // Админ узнаёт о заказе только вместе с чеком (см. POST /:id/receipt ниже) —
+  // так фото оплаты и информация о заказе всегда приходят одним сообщением,
+  // а не отдельно и не рискуют разъехаться, если чек не отправится или задержится.
 });
 
-// Клиент прикладывает скриншот перевода после оплаты — пересылаем чек
-// админам прямо в чат заказа, без сохранения файла на сервере.
+// Клиент прикладывает скриншот перевода после оплаты — это и есть момент,
+// когда админ впервые узнаёт о заказе: чек уходит одним сообщением, фото
+// сверху, вся информация о заказе — подписью под ним, с кнопками подтверждения.
 router.post('/:id/receipt', async (req, res) => {
   const order = ordersModel.getById(Number(req.params.id));
   if (!order || order.userId !== req.dbUser.id) {
@@ -86,13 +89,12 @@ router.post('/:id/receipt', async (req, res) => {
 
   const buffer = Buffer.from(match[2], 'base64');
   const user = req.dbUser;
-  const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
-  const caption = `🧾 Чек по заказу #${order.id} «${order.productName}»\nОт: ${displayName} (карта #${user.member_code})`;
+  const { text, reply_markup } = buildOrderNotification(order, user);
 
   try {
     for (const adminId of config.adminIds) {
       // eslint-disable-next-line no-await-in-loop
-      await bot.telegram.sendPhoto(adminId, { source: buffer }, { caption });
+      await bot.telegram.sendPhoto(adminId, { source: buffer }, { caption: text, parse_mode: 'HTML', reply_markup });
     }
     res.json({ ok: true });
   } catch (err) {
@@ -121,7 +123,7 @@ function formatOrderDetails(order) {
   );
 }
 
-async function notifyAdmins(order, user) {
+function buildOrderNotification(order, user) {
   const displayName = user.username ? `@${user.username}` : user.first_name || `id${user.telegram_id}`;
 
   const text =
@@ -130,19 +132,17 @@ async function notifyAdmins(order, user) {
     `${formatOrderDetails(order)}\n\n` +
     `Ожидает оплаты.`;
 
-  for (const adminId of config.adminIds) {
-    await bot.telegram.sendMessage(adminId, text, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '✅ Подтвердить оплату', callback_data: `confirm_order:${order.id}` },
-            { text: '❌ Отменить', callback_data: `cancel_order:${order.id}` },
-          ],
+  return {
+    text,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '✅ Подтвердить оплату', callback_data: `confirm_order:${order.id}` },
+          { text: '❌ Отменить', callback_data: `cancel_order:${order.id}` },
         ],
-      },
-    });
-  }
+      ],
+    },
+  };
 }
 
 module.exports = router;
