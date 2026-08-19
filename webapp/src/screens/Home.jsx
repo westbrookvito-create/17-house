@@ -213,7 +213,7 @@ function ProductBlock({ item, bonusUnlocked, toast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={item.name} />}
+      <ProductGallery images={galleryImages} alt={item.name} />
 
       <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
         {item.name}
@@ -366,6 +366,16 @@ function ProductGallery({ images, alt }) {
   function handleScroll(e) {
     const el = e.target;
     setIndex(Math.round(el.scrollLeft / el.clientWidth));
+  }
+
+  // Нет фото (например, у тестовых заглушек товара) — всё равно резервируем
+  // место под фото пустым блоком, а не схлопываем карточку без него.
+  if (images.length === 0) {
+    return (
+      <div className="product-gallery">
+        <div className="product-gallery-item product-gallery-empty" />
+      </div>
+    );
   }
 
   return (
