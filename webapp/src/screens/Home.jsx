@@ -90,9 +90,10 @@ export default function Home() {
           <div className="center-state">Пока нет товаров в каталоге. Загляните позже.</div>
         )}
 
-        {products?.map((p) => (
-          <ProductBlock key={p.id} product={p} bonusUnlocked={profile?.bonusUnlocked} toast={toast} />
-        ))}
+        {products &&
+          buildCatalogItems(products).map((item) => (
+            <ProductBlock key={item.key} item={item} bonusUnlocked={profile?.bonusUnlocked} toast={toast} />
+          ))}
       </section>
 
       {menuOpen && (
@@ -114,8 +115,25 @@ export default function Home() {
   );
 }
 
-function ProductBlock({ product, bonusUnlocked, toast }) {
-  const [colorIndex, setColorIndex] = useState(0);
+// Каждый цвет — отдельная карточка в каталоге (а не переключатель внутри
+// одной карточки): разворачиваем товары с несколькими цветами в отдельные
+// пункты, каждый со своим именем ("Тишорт — Navy") и своей галереей фото.
+function buildCatalogItems(products) {
+  return products.flatMap((p) => {
+    const colors = p.colors && p.colors.length ? p.colors : [{ name: '', photos: p.imageUrls || [] }];
+    return colors.map((c, i) => ({
+      key: `${p.id}-${i}`,
+      productId: p.id,
+      name: c.name ? `${p.name} — ${c.name}` : p.name,
+      color: c.name || null,
+      price: p.price,
+      sizes: p.sizes,
+      imageUrls: c.photos,
+    }));
+  });
+}
+
+function ProductBlock({ item, bonusUnlocked, toast }) {
   const [size, setSize] = useState(null);
   const [stage, setStage] = useState('select'); // select -> form -> payment
   const [submitting, setSubmitting] = useState(false);
@@ -125,11 +143,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const receiptInputRef = useRef(null);
 
-  const colors = product.colors || [];
-  const hasNamedColors = colors.some((c) => c.name);
-  const activeColor = colors[colorIndex];
-
-  const finalPrice = bonusUnlocked ? Math.round(product.price * 0.9) : product.price;
+  const finalPrice = bonusUnlocked ? Math.round(item.price * 0.9) : item.price;
   const needsRecipientName = form.deliveryMethod !== 'yandex';
   const formValid =
     form.deliveryMethod &&
@@ -146,9 +160,9 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     setSubmitting(true);
     try {
       const res = await api.createOrder({
-        productId: product.id,
+        productId: item.productId,
         size,
-        color: hasNamedColors ? activeColor?.name : undefined,
+        color: item.color || undefined,
         deliveryMethod: form.deliveryMethod,
         recipientName: form.recipientName.trim(),
         phone: form.phone.trim(),
@@ -195,41 +209,19 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
     }
   }
 
-  const galleryImages = activeColor?.photos || product.imageUrls || [];
+  const galleryImages = item.imageUrls || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {galleryImages.length > 0 && <ProductGallery key={colorIndex} images={galleryImages} alt={product.name} />}
+      {galleryImages.length > 0 && <ProductGallery images={galleryImages} alt={item.name} />}
 
       <h3 className="serif" style={{ fontSize: 18, margin: 0, textAlign: 'center' }}>
-        {product.name}
+        {item.name}
       </h3>
 
-      {hasNamedColors && colors.length > 1 && (
-        <div className="color-swatch-row">
-          {colors.map((c, i) => (
-            <button
-              key={`${c.name}-${i}`}
-              type="button"
-              className={`color-swatch${i === colorIndex ? ' selected' : ''}`}
-              disabled={stage !== 'select'}
-              onClick={() => {
-                setColorIndex(i);
-                hapticSelect();
-              }}
-            >
-              <span className="color-swatch-thumb">
-                <img src={buildImageUrl(c.photos[0])} alt={c.name} />
-              </span>
-              <span className="color-swatch-name">{c.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {product.sizes.length > 0 && (
+      {item.sizes.length > 0 && (
         <div className="size-row" style={{ justifyContent: 'center' }}>
-          {product.sizes.map((s) => (
+          {item.sizes.map((s) => (
             <button
               key={s}
               className={`size-chip${s === size ? ' selected' : ''}`}
@@ -250,7 +242,7 @@ function ProductBlock({ product, bonusUnlocked, toast }) {
         <span style={{ fontWeight: 600 }}>
           {bonusUnlocked && (
             <span className="muted" style={{ textDecoration: 'line-through', marginRight: 8, fontWeight: 400 }}>
-              {product.price} ₽
+              {item.price} ₽
             </span>
           )}
           {finalPrice} ₽

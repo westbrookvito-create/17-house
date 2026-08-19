@@ -79,7 +79,15 @@ export default function Profile() {
               <div className="muted" style={{ fontSize: 12.5, marginBottom: 6 }}>
                 Статус
               </div>
-              <div style={{ textTransform: 'capitalize', color: 'var(--text)' }}>{user.status}</div>
+              <div
+                style={{
+                  textTransform: user.statusColor ? 'none' : 'capitalize',
+                  color: user.statusColor || 'var(--text)',
+                  fontWeight: user.statusColor ? 700 : 400,
+                }}
+              >
+                {user.statusLabel}
+              </div>
             </div>
             <div style={{ flex: 1 }}>
               <div className="muted" style={{ fontSize: 12.5, marginBottom: 6 }}>

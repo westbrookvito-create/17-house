@@ -31,6 +31,22 @@ function parsePaymentRequisites() {
   return DEFAULT_PAYMENT_REQUISITES;
 }
 
+// Персональные статусы в профиле для конкретных Telegram ID — например,
+// "Разработчик" красным вместо обычного "Member". Формат:
+// SPECIAL_STATUSES={"111111111":{"label":"Разработчик","color":"#d96c6c"}}
+// Пока переменная явно не задана, статус получает только первый admin id —
+// его можно переопределить/расширить на нескольких админов через env var.
+function parseSpecialStatuses() {
+  if (process.env.SPECIAL_STATUSES) {
+    try {
+      return JSON.parse(process.env.SPECIAL_STATUSES);
+    } catch (err) {
+      console.error('[config] Failed to parse SPECIAL_STATUSES, ignoring:', err.message);
+    }
+  }
+  return adminIds[0] ? { [adminIds[0]]: { label: 'Разработчик', color: '#d96c6c' } } : {};
+}
+
 module.exports = {
   botToken: required('BOT_TOKEN'),
   adminIds,
@@ -42,5 +58,6 @@ module.exports = {
   corsOrigin: (process.env.CORS_ORIGIN || '*').split(',').map((s) => s.trim()),
   dbPath: process.env.DB_PATH || require('path').join(__dirname, '..', 'data', '17house.db'),
   paymentRequisites: parsePaymentRequisites(),
+  specialStatuses: parseSpecialStatuses(),
   deliveryMethods: { yandex: 'Яндекс Доставка', cdek: 'СДЭК' },
 };

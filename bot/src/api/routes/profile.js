@@ -6,12 +6,15 @@ const router = express.Router();
 router.use(requireTelegramAuth);
 
 function serializeUser(user) {
+  const special = config.specialStatuses[user.telegram_id];
   return {
     id: user.id,
     firstName: user.first_name,
     username: user.username,
     memberCode: user.member_code,
     status: user.status,
+    statusLabel: special?.label || user.status,
+    statusColor: special?.color || null,
     joinedAt: user.joined_at,
     statusUntil: user.status_until,
     shirtsPurchased: user.shirts_purchased,

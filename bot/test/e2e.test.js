@@ -280,6 +280,15 @@ async function main() {
   assert.strictEqual(unauth.status, 401);
   console.log('  OK 401 without auth');
 
+  console.log('== admin gets a personal "Разработчик" status, regular user does not ==');
+  const adminProfile = await api('/api/profile', { headers: authHeaders(ADMIN_ID) });
+  assert.strictEqual(adminProfile.body.user.statusLabel, 'Разработчик');
+  assert.strictEqual(adminProfile.body.user.statusColor, '#d96c6c');
+  const regularProfile = await api('/api/profile', { headers: authHeaders(USER_ID) });
+  assert.strictEqual(regularProfile.body.user.statusLabel, regularProfile.body.user.status);
+  assert.strictEqual(regularProfile.body.user.statusColor, null);
+  console.log('  OK special status applied only to the admin');
+
   console.log('== bonus starts locked, 0 shirts purchased ==');
   let bonusCheck = await api('/api/profile/bonus', { headers: authHeaders(USER_ID) });
   assert.strictEqual(bonusCheck.body.unlocked, false);
