@@ -369,11 +369,24 @@ function ProductGallery({ images, alt }) {
   }
 
   // Нет фото (например, у тестовых заглушек товара) — всё равно резервируем
-  // место под фото пустым блоком, а не схлопываем карточку без него.
+  // место под фото пустым блоком с иконкой, а не схлопываем карточку без него.
   if (images.length === 0) {
     return (
       <div className="product-gallery">
-        <div className="product-gallery-item product-gallery-empty" />
+        <div className="product-gallery-item product-gallery-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
+            <circle cx="8.5" cy="10" r="1.5" stroke="currentColor" strokeWidth="1.6" />
+            <path
+              d="M21 15.5l-4.8-4-4 3.2-2.7-2-6.5 5.3"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>Фото скоро появится</span>
+        </div>
       </div>
     );
   }

@@ -355,6 +355,18 @@ a {
 
 .product-gallery-empty {
   border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+}
+
+.product-gallery-empty span {
+  font-size: 13px;
 }
 
 .product-gallery-item img {
