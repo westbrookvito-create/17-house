@@ -13,14 +13,19 @@ const DELIVERY_OPTIONS = [
   { value: 'cdek', label: 'СДЭК' },
 ];
 
+const BURGER_HIDE_DELAY_MS = 1600;
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState(null);
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
+  const [burgerVisible, setBurgerVisible] = useState(true);
   const toast = useToast();
   const navigate = useNavigate();
   const catalogRef = useRef(null);
+  const scrollRef = useRef(null);
+  const burgerHideTimer = useRef(null);
 
   useEffect(() => {
     Promise.all([api.getProducts(), api.getProfile()])
@@ -29,6 +34,25 @@ export default function Home() {
         setProfile(me.user);
       })
       .catch(() => setError('Не удалось загрузить каталог. Откройте приложение из Telegram-бота.'));
+  }, []);
+
+  // Бургер виден только пока листаешь страницу, и ещё 1.6с после — не
+  // висит постоянно, а всплывает по факту скролла (в любом месте страницы)
+  // и сам гаснет, когда скролл затих.
+  useEffect(() => {
+    function armHideTimer() {
+      setBurgerVisible(true);
+      clearTimeout(burgerHideTimer.current);
+      burgerHideTimer.current = setTimeout(() => setBurgerVisible(false), BURGER_HIDE_DELAY_MS);
+    }
+
+    armHideTimer();
+    const el = scrollRef.current;
+    el?.addEventListener('scroll', armHideTimer, { passive: true });
+    return () => {
+      el?.removeEventListener('scroll', armHideTimer);
+      clearTimeout(burgerHideTimer.current);
+    };
   }, []);
 
   function scrollToCatalog() {
@@ -41,23 +65,23 @@ export default function Home() {
   }
 
   return (
-    <div className="home-scroll">
+    <div className="home-scroll" ref={scrollRef}>
+      <button
+        onClick={() => setMenuOpen(true)}
+        aria-label="Меню"
+        className={`burger-fixed${burgerVisible ? '' : ' hidden'}`}
+      >
+        <IconMenu size={26} />
+      </button>
+
       <section className="home-section">
-        <div className="topbar" style={{ justifyContent: 'space-between' }}>
-          <div style={{ width: 26 }} />
+        <div className="topbar" style={{ justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Logo height={36} />
             <h1 className="serif" style={{ fontSize: 26, margin: 0 }}>
               17 House
             </h1>
           </div>
-          <button
-            onClick={() => setMenuOpen(true)}
-            aria-label="Меню"
-            style={{ background: 'none', border: 'none', padding: 0, display: 'flex', color: 'var(--text)' }}
-          >
-            <IconMenu size={26} />
-          </button>
         </div>
 
         <div className="hero hero-lg" style={{ backgroundImage: 'url(/hero.jpg)' }} />

@@ -85,7 +85,11 @@ a {
 .home-scroll {
   height: 100dvh;
   overflow-y: auto;
-  scroll-snap-type: y mandatory;
+  /* proximity, а не mandatory: с mandatory любой сдвиг разметки (например,
+     открытие мобильной клавиатуры при вводе ФИО/телефона в форме заказа)
+     заставлял браузер принудительно доскроллить до ближайшей секции —
+     и страницу "откидывало" вверх прямо во время заполнения формы. */
+  scroll-snap-type: y proximity;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
@@ -218,6 +222,28 @@ a {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 4px;
+}
+
+/* Бургер плавает поверх всей страницы (а не только внутри секции
+   приветствия), но виден только пока листаешь сайт — и ещё 1.6с после,
+   дальше сам гаснет (см. Home.jsx). */
+.burger-fixed {
+  position: fixed;
+  top: calc(18px + var(--safe-top));
+  right: 18px;
+  z-index: 50;
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  color: var(--text);
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.burger-fixed.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .topbar-title {
