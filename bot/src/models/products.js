@@ -36,14 +36,25 @@ function rowToProduct(row) {
     colors,
     active: !!row.active,
     createdAt: row.created_at,
+    isPlaceholder: !!row.is_placeholder,
   };
 }
 
+function hasRealProduct() {
+  return !!db.prepare(`SELECT 1 FROM products WHERE is_placeholder = 0 LIMIT 1`).get();
+}
+
+// Тестовые заглушки (см. db.js) видны в каталоге только пока админ ни разу
+// не добавил настоящий товар. Проверяем факт существования реального товара
+// (не только текущую активность) — иначе временное скрытие единственного
+// настоящего товара снова показало бы заглушки, что не то, чего хочет админ.
 function listActive() {
-  return db
+  const rows = db
     .prepare(`SELECT * FROM products WHERE active = 1 ORDER BY id DESC`)
     .all()
     .map(rowToProduct);
+  if (!hasRealProduct()) return rows;
+  return rows.filter((p) => !p.isPlaceholder);
 }
 
 function listAll() {

@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS products (
   sizes TEXT NOT NULL DEFAULT '[]',
   colors TEXT NOT NULL DEFAULT '[]',
   active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  is_placeholder INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -111,6 +112,27 @@ if (!productColumns.has('photos')) {
     const photos = colors.flatMap((c) => c.fileIds || (c.fileId ? [c.fileId] : []));
     if (photos.length) backfill.run(JSON.stringify(photos), row.id);
   }
+}
+
+// Идемпотентная миграция для баз, созданных до появления тестовых заглушек каталога.
+if (!productColumns.has('is_placeholder')) {
+  db.exec(`ALTER TABLE products ADD COLUMN is_placeholder INTEGER NOT NULL DEFAULT 0`);
+}
+
+// Заглушки для каталога, чтобы страница не была пустой сразу после деплоя,
+// пока админ не добавил ни одного настоящего товара через бота. Как только
+// появляется хотя бы один реальный товар, listActive() автоматически
+// скрывает эти два тестовых (см. models/products.js) — здесь же они
+// вставляются только один раз, при полностью пустой таблице.
+const productCount = db.prepare(`SELECT COUNT(*) AS n FROM products`).get().n;
+if (productCount === 0) {
+  const insertPlaceholder = db.prepare(
+    `INSERT INTO products (name, description, price, sizes, colors, active, created_at, is_placeholder)
+     VALUES (?, '', ?, ?, '[]', 1, ?, 1)`,
+  );
+  const now = new Date().toISOString();
+  insertPlaceholder.run('Тестовый товар 1', 1000, JSON.stringify(['S', 'M', 'L']), now);
+  insertPlaceholder.run('Тестовый товар 2', 1500, JSON.stringify(['S', 'M', 'L']), now);
 }
 
 module.exports = db;

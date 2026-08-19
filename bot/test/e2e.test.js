@@ -214,6 +214,12 @@ async function main() {
   assert.ok(lastMessageTo(ADMIN_ID).includes('Админ-панель'));
   console.log('  OK');
 
+  console.log('== catalog shows 2 placeholder products before any real one is added ==');
+  const beforeRealProduct = productsModel.listActive();
+  assert.strictEqual(beforeRealProduct.length, 2, 'catalog should show exactly the 2 seeded placeholders');
+  assert.ok(beforeRealProduct.every((p) => p.isPlaceholder), 'both starting products should be marked as placeholders');
+  console.log('  OK 2 placeholders shown pre-launch');
+
   console.log('== admin adds a product with two colors, each with its own photos ==');
   await sendCallback(ADMIN_ID, 'admin:add_product');
   await sendText(ADMIN_ID, 'House Every Weekend Tee');
@@ -232,8 +238,9 @@ async function main() {
   assert.ok(lastMessageTo(ADMIN_ID).includes('опубликован'));
 
   const products = productsModel.listActive();
-  assert.strictEqual(products.length, 1);
+  assert.strictEqual(products.length, 1, 'placeholders should disappear once a real product exists');
   const product = products[0];
+  assert.strictEqual(product.isPlaceholder, false);
   assert.strictEqual(product.name, 'House Every Weekend Tee');
   assert.strictEqual(product.price, 3200);
   assert.deepStrictEqual(product.sizes, ['S', 'M', 'L', 'XL']);
