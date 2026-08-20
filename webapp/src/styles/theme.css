@@ -85,13 +85,18 @@ a {
 .home-scroll {
   height: 100dvh;
   overflow-y: auto;
-  /* proximity, а не mandatory: с mandatory любой сдвиг разметки (например,
-     открытие мобильной клавиатуры при вводе ФИО/телефона в форме заказа)
-     заставлял браузер принудительно доскроллить до ближайшей секции —
-     и страницу "откидывало" вверх прямо во время заполнения формы. */
-  scroll-snap-type: y proximity;
+  /* mandatory — секции "перелистываются" как слайды при обычном скролле.
+     На время ввода в форму заказа (класс .typing, см. Home.jsx) ослабляем
+     до proximity ниже: с mandatory открытие мобильной клавиатуры сдвигает
+     разметку и заставляет браузер принудительно доскроллить до ближайшей
+     секции — страницу "откидывало" вверх прямо во время заполнения формы. */
+  scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+.home-scroll.typing {
+  scroll-snap-type: y proximity;
 }
 
 .home-section {
