@@ -13,17 +13,11 @@ const DELIVERY_OPTIONS = [
   { value: 'cdek', label: 'СДЭК' },
 ];
 
-// Насколько нужно проскроллить вниз от верха страницы, прежде чем бургер
-// вообще начинает прятаться — у самого верха он всегда виден, чтобы не
-// мигал туда-сюда от долей пикселя скролла.
-const BURGER_HIDE_THRESHOLD_PX = 40;
-
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState(null);
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
-  const [burgerVisible, setBurgerVisible] = useState(true);
   const toast = useToast();
   const navigate = useNavigate();
   const catalogRef = useRef(null);
@@ -38,25 +32,6 @@ export default function Home() {
       .catch(() => setError('Не удалось загрузить каталог. Откройте приложение из Telegram-бота.'));
   }, []);
 
-  // Бургер выезжает как обычный сайтовый хедер: виден у самого верха,
-  // прячется при скролле вниз, снова выезжает, стоит потянуть вверх —
-  // работает и на главной, и в каталоге, это один общий скролл-контейнер.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return undefined;
-    let lastTop = el.scrollTop;
-
-    function handleScroll() {
-      const top = el.scrollTop;
-      const scrollingUp = top < lastTop;
-      setBurgerVisible(top <= BURGER_HIDE_THRESHOLD_PX || scrollingUp);
-      lastTop = top;
-    }
-
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
-
   function scrollToCatalog() {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -68,11 +43,7 @@ export default function Home() {
 
   return (
     <div className="home-scroll" ref={scrollRef}>
-      <button
-        onClick={() => setMenuOpen(true)}
-        aria-label="Меню"
-        className={`burger-fixed${burgerVisible ? '' : ' hidden'}`}
-      >
+      <button onClick={() => setMenuOpen(true)} aria-label="Меню" className="burger-fixed">
         <IconMenu size={26} />
       </button>
 
