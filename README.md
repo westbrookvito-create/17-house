@@ -8,7 +8,7 @@
 
 ```
 bot/     — Node.js + Telegraf + Express API + SQLite. Деплой на Railway.
-webapp/  — React (Vite) мини-приложение в дизайне концепта. Деплой на Netlify.
+webapp/  — React (Vite) мини-приложение в дизайне концепта. Деплой на Vercel.
 ```
 
 Как это работает: `webapp` — статический сайт, который Telegram открывает
@@ -23,7 +23,7 @@ webapp/  — React (Vite) мини-приложение в дизайне кон
 
 1. Откройте [@BotFather](https://t.me/BotFather), выполните `/newbot` (если бота ещё нет) и сохраните токен.
 2. Включите Mini App для бота: `/newapp` → выберите бота → укажите название,
-   описание, картинку и **Web App URL** (это будет URL вашего Netlify-сайта,
+   описание, картинку и **Web App URL** (это будет URL вашего Vercel-сайта,
    его вы получите на шаге 3 — можно вернуться и обновить командой `/myapps`).
 3. Чтобы кнопка открытия приложения появлялась в самом чате, ничего
    дополнительно делать не нужно — бот сам присылает inline-кнопку
@@ -44,8 +44,8 @@ webapp/  — React (Vite) мини-приложение в дизайне кон
    |---|---|
    | `BOT_TOKEN` | токен от BotFather |
    | `ADMIN_IDS` | ваш Telegram ID (через запятую, если админов несколько) |
-   | `WEBAPP_URL` | URL вашего Netlify-сайта (шаг 3) |
-   | `CORS_ORIGIN` | тот же URL Netlify-сайта |
+   | `WEBAPP_URL` | URL вашего Vercel-сайта (шаг 3) |
+   | `CORS_ORIGIN` | тот же URL Vercel-сайта |
    | `CLUB_NAME` | `17 House` |
    | `BONUS_THRESHOLD` | `3` |
    | `BONUS_PERCENT` | `10` |
@@ -63,22 +63,25 @@ webapp/  — React (Vite) мини-приложение в дизайне кон
 
 ---
 
-## 3. Деплой мини-приложения (Netlify)
+## 3. Деплой мини-приложения (Vercel)
 
-1. Создайте сайт на [Netlify](https://netlify.com) из этого репозитория,
-   укажите **Base directory: `webapp`**, build command — `npm run build`,
-   publish directory — `dist` (уже прописано в `webapp/netlify.toml`).
-2. Добавьте переменную окружения сайта:
+1. Создайте проект на [Vercel](https://vercel.com) → **Add New → Project** →
+   импортируйте этот репозиторий из GitHub.
+2. На экране настроек укажите **Root Directory: `webapp`** — Vercel сам
+   распознает Vite-проект и подставит `npm run build` / `dist` (это же
+   продублировано в `webapp/vercel.json`, включая rewrite всех путей на
+   `index.html`, необходимый для роутинга мини-аппа).
+3. Добавьте переменную окружения проекта (Settings → Environment Variables):
 
    | Переменная | Значение |
    |---|---|
    | `VITE_API_URL` | URL бэкенда с Railway (без слэша на конце), например `https://17house-bot-production.up.railway.app` |
 
-3. Задеплойте сайт, скопируйте его URL и вставьте в переменную `WEBAPP_URL`
-   бэкенда на Railway (шаг 2) — после этого передеплойте бэкенд, чтобы кнопка
-   в боте вела на актуальный адрес.
-4. Обновите Web App URL в `@BotFather` (`/myapps` → ваше приложение →
-   Edit Web App URL) тем же адресом Netlify.
+4. Задеплойте сайт, скопируйте его URL (вида `https://<проект>.vercel.app`)
+   и вставьте в переменную `WEBAPP_URL` бэкенда на Railway (шаг 2) — после
+   этого передеплойте бэкенд, чтобы кнопка в боте вела на актуальный адрес.
+5. Обновите Web App URL в `@BotFather` (`/myapps` → ваше приложение →
+   Edit Web App URL) тем же адресом Vercel.
 
 ---
 
