@@ -57,35 +57,6 @@ export default function Home() {
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Снап между секциями обычно жёсткий (mandatory) — это и даёт то самое
-  // ощущение "перелистывания слайдов". Но пока в форме заказа открыта
-  // клавиатура (фокус на инпуте ФИО/телефона/адреса), временно ослабляем
-  // его до proximity — иначе изменение высоты вьюпорта от клавиатуры
-  // заставляет браузер принудительно доскроллить и страницу "откидывает"
-  // вверх прямо во время ввода.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return undefined;
-
-    function isFormField(target) {
-      return target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
-    }
-
-    function handleFocusIn(e) {
-      if (isFormField(e.target)) el.classList.add('typing');
-    }
-    function handleFocusOut(e) {
-      if (isFormField(e.target)) el.classList.remove('typing');
-    }
-
-    el.addEventListener('focusin', handleFocusIn);
-    el.addEventListener('focusout', handleFocusOut);
-    return () => {
-      el.removeEventListener('focusin', handleFocusIn);
-      el.removeEventListener('focusout', handleFocusOut);
-    };
-  }, []);
-
   function scrollToCatalog() {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
