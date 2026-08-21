@@ -71,7 +71,7 @@ function getById(id) {
 // существующую запись вместо создания второй копии.
 const DUPLICATE_GUARD_WINDOW_MS = 10000;
 
-function create({ name, description, price, sizes, colors }) {
+function create({ name, description = '', price, sizes, colors }) {
   const recentDuplicate = db
     .prepare(`SELECT * FROM products WHERE name = ? AND created_at > ? ORDER BY id DESC LIMIT 1`)
     .get(name, new Date(Date.now() - DUPLICATE_GUARD_WINDOW_MS).toISOString());

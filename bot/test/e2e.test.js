@@ -223,7 +223,6 @@ async function main() {
   console.log('== admin adds a product with two colors, each with its own photos ==');
   await sendCallback(ADMIN_ID, 'admin:add_product');
   await sendText(ADMIN_ID, 'House Every Weekend Tee');
-  await sendText(ADMIN_ID, 'Плотный хлопок, вышитая эмблема.');
   await sendText(ADMIN_ID, '3200');
   await sendText(ADMIN_ID, 'S, M, L, XL');
   await sendText(ADMIN_ID, 'Navy');
@@ -282,7 +281,6 @@ async function main() {
   console.log('== admin creates + deletes a throwaway product ==');
   await sendCallback(ADMIN_ID, 'admin:add_product');
   await sendText(ADMIN_ID, 'Temp Product');
-  await sendText(ADMIN_ID, 'temp');
   await sendText(ADMIN_ID, '100');
   await sendText(ADMIN_ID, 'M');
   await sendText(ADMIN_ID, 'Default');

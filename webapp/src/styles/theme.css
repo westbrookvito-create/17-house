@@ -102,7 +102,11 @@ a {
 .home-section {
   min-height: 100dvh;
   scroll-snap-align: start;
-  scroll-snap-stop: always;
+  /* normal, а не always: с always браузер обязан ЖЁСТКО останавливаться
+     ровно на границе секции при любом, даже быстром свайпе — это и
+     ощущалось как "залипание" на переходе. normal позволяет уверенному
+     свайпу проскроллить сразу дальше, к товарам, не застревая на границе. */
+  scroll-snap-stop: normal;
   padding: calc(18px + var(--safe-top)) 18px 24px;
   display: flex;
   flex-direction: column;

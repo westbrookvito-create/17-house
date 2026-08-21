@@ -26,8 +26,7 @@ function formatColorsLine(colors) {
 
 function renderProductText(p) {
   return (
-    `<b>${p.name}</b>${p.active ? '' : ' (скрыт)'}\n` +
-    `${p.description || ''}\n\n` +
+    `<b>${p.name}</b>${p.active ? '' : ' (скрыт)'}\n\n` +
     `Цена: ${p.price} ₽\n` +
     `Размеры: ${p.sizes.join(', ') || '—'}\n` +
     `Цвета: ${formatColorsLine(p.colors)}`
@@ -37,8 +36,7 @@ function renderProductText(p) {
 function renderDraftPreview(data) {
   return (
     `<b>Предпросмотр нового товара</b>\n\n` +
-    `<b>${data.name}</b>\n` +
-    `${data.description || ''}\n\n` +
+    `<b>${data.name}</b>\n\n` +
     `Цена: ${data.price} ₽\n` +
     `Размеры: ${data.sizes.join(', ') || '—'}\n` +
     `Цвета: ${formatColorsLine(data.colors)}`
@@ -131,10 +129,7 @@ function productEditKeyboard(p) {
       Markup.button.callback('✏️ Название', `product:edit_name:${p.id}`),
       Markup.button.callback('✏️ Цена', `product:edit_price:${p.id}`),
     ],
-    [
-      Markup.button.callback('✏️ Описание', `product:edit_description:${p.id}`),
-      Markup.button.callback('✏️ Размеры', `product:edit_sizes:${p.id}`),
-    ],
+    [Markup.button.callback('✏️ Размеры', `product:edit_sizes:${p.id}`)],
     [Markup.button.callback('🎨 Цвета', `product:edit_colors:${p.id}`)],
     [Markup.button.callback(p.active ? '🚫 Скрыть' : '✅ Показать', `product:toggle:${p.id}`)],
     [Markup.button.callback('🗑 Удалить', `product:delete_confirm:${p.id}`)],
@@ -412,7 +407,7 @@ function register(bot) {
     return ctx.replyWithHTML(renderProductText(product), { reply_markup: productEditKeyboard(product) });
   });
 
-  const editableFields = ['name', 'description', 'price', 'sizes'];
+  const editableFields = ['name', 'price', 'sizes'];
   for (const field of editableFields) {
     bot.action(new RegExp(`^product:edit_${field}:(\\d+)$`), (ctx) => {
       if (!isAdminCtx(ctx)) return ctx.answerCbQuery();
@@ -421,7 +416,6 @@ function register(bot) {
       ctx.answerCbQuery();
       const prompts = {
         name: 'Введите новое название:',
-        description: 'Введите новое описание:',
         price: 'Введите новую цену (число, ₽):',
         sizes: 'Введите размеры через запятую, например: S, M, L, XL',
       };
@@ -637,13 +631,9 @@ function register(bot) {
       }
 
       case 'name':
+        // Описание товара нигде не отображается в веб-аппе, поэтому его
+        // не спрашиваем — сразу переходим к цене.
         session.data.name = text;
-        session.step = 'description';
-        sessions.set(ctx.from.id, session);
-        return ctx.reply('Введите описание товара:');
-
-      case 'description':
-        session.data.description = text;
         session.step = 'price';
         sessions.set(ctx.from.id, session);
         return ctx.reply('Введите цену в рублях (число):');
